@@ -7,6 +7,7 @@ Created on Tue Oct 22 16:08:06 2024
 """
 from nanonis_spm import Nanonis
 from decimal import Decimal
+import time
 
 
 class Gate:
@@ -40,12 +41,12 @@ class Gate:
         self.nanonisInstance = nanonisInstance
         self._voltage = self.get_volt()
 
-    def set_volt(self, value_to_set: Decimal) -> None:
+    def set_volt(self, target_voltage: float or Decimal) -> None:
         """
         Sets the voltage for the gate.
 
         Args:
-            value_to_set (Decimal): The voltage value to set.
+            target_voltage (float or Decimal): The voltage value to set.
 
         Raises:
             ValueError: If the write_index is None, indicating the gate cannot set voltage.
@@ -54,8 +55,7 @@ class Gate:
             raise ValueError(
                 f"'{self.name}' cannot set voltage because write_index is not defined.")
         else:
-            self.nanonisInstance.UserOut_ValSet(self.write_index, value_to_set)
-            self._voltage = value_to_set
+            self.nanonisInstance.UserOut_ValSet(self.write_index, Decimal(target_voltage))
 
     def get_volt(self) -> Decimal:
         """
@@ -64,32 +64,57 @@ class Gate:
         Returns:
             Decimal: The current voltage.
         """
-        self._voltage = self.nanonisInstance.Signals_ValsGet([self.read_index], True)[2][1][0][0]
+        self._voltage = Decimal(self.nanonisInstance.Signals_ValsGet([self.read_index], True)[2][1][0][0])
         return self._voltage
 
-    def voltage(self, value_to_set: Decimal = None) -> Decimal:
+    def voltage(self, target_voltage: float or Decimal = None, wait: bool = True) -> Decimal:
         """
         Gets or sets the voltage. If no value is provided, it reads the current voltage.
 
         Args:
-            value_to_set (Decimal, optional): The voltage value to set. If None, the current voltage is retrieved.
+            target_voltage (float or Decimal, optional): The voltage value to set. If None, the current voltage is retrieved.
+            wait (bool, option): Whether to wait for the current to reach the target voltage.
 
         Returns:
             Decimal: The set or retrieved voltage.
         """
-        if value_to_set is None:
+        if target_voltage is None:
             self.get_volt()
             return self._voltage
         else:
-            self.set_volt(value_to_set)
-            return self._voltage
+            self.set_volt(target_voltage)
+            if wait:
+                print(f"[INFO] Ramping {self.label} to {target_voltage} [V]. ")
+                while True:
+                    if self.is_at_target_voltage(target_voltage):
+                        break
+                    time.sleep(0.01)
+                print(f"[INFO] {self.label} is at {target_voltage} [V]. ")
+            return Decimal(target_voltage)
 
-    def read_current(self, amplifier: int = -1) -> Decimal:
+    def turn_off(self, wait: bool = True):
+        self.voltage(0.0, wait)
+
+    def is_at_target_voltage(self, target_voltage: float or Decimal, tolerance: float or Decimal = 1e-6) -> bool:
+        """
+        Check if the current voltage is within the specified tolerance of the target voltage.
+
+        Args:
+            target_voltage (float or Decimal): the target voltage value.
+            tolerance (float): The allowed deviation from the target value.
+
+        Returns:
+            bool: True if the voltage is within the specified tolerance of the target voltage.
+        """
+        self.get_volt()
+        return abs(self._voltage - Decimal(target_voltage)) < Decimal(tolerance)
+
+    def read_current(self, amplifier: float = -1) -> Decimal:
         """
         Reads the current from the gate.
 
         Args:
-            amplifier (int, optional): The amplifier setting, default is -1.
+            amplifier (float, optional): The amplifier setting, default is -1.
 
         Returns:
             float: The current value adjusted by the amplifier.
