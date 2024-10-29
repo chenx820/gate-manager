@@ -136,7 +136,7 @@ def sweep1D(swept_terminal: GatesGroup, measured_input: Gate, start_voltage: flo
     # Set initial voltages
     pbar = tqdm(total=len(output_gates.gates) + len(initial_state.items()) + len(swept_terminal.gates),
                 desc="[INFO] Ramping voltage", ncols=80, bar_format="{desc}: [{bar}] {percentage:3.0f}%",
-                ascii="░▒█")  # progress bar
+                ascii="▪▫")  # progress bar
     output_gates.turn_off()
     pbar.update(len(output_gates.gates))
     preset = [(gate, initial_voltage) for gate_label, initial_voltage in initial_state.items() for gate in
@@ -174,7 +174,7 @@ def sweep1D(swept_terminal: GatesGroup, measured_input: Gate, start_voltage: flo
     # Execute sweep and record data
     total = int(abs(end_voltage - start_voltage) / step + 1)
     pbar = tqdm(total=total, desc="[INFO] Sweeping", ncols=80, bar_format="{desc}: [{bar}] {percentage:3.0f}%",
-                ascii="░▒█")  # progress bar
+                ascii="▪▫")  # progress bar
     frame = 0
     while True:
         swept_terminal.voltage(voltage)
