@@ -5,6 +5,7 @@ Gate class to interface with the Nanonis system for reading and setting voltages
 Created on Tue Oct 22 16:08:06 2024
 @author: Chen Huang <chen.huang23@imperial.ac.uk>
 """
+from typing import Union
 from nanonis_spm import Nanonis
 from decimal import Decimal
 import time
@@ -93,7 +94,7 @@ class GatesGroup:
         for gate in self.gates:
             gate.set_volt(target_voltage)
 
-    def voltage(self, target_voltage: float or Decimal, is_wait: bool = True) -> None:
+    def voltage(self, target_voltage: Union[float, Decimal], is_wait: bool = True) -> None:
         """Sets or retrieves the voltage for all gates in the group."""
         for gate in self.gates:
             gate.voltage(target_voltage, False)

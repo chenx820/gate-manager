@@ -1,0 +1,10 @@
+import unittest
+from GateManager import GateManager
+
+class TestGateManager(unittest.TestCase):
+    def test_initialization(self):
+        gate_manager = GateManager()
+        self.assertIsInstance(gate_manager, GateManager)
+
+if __name__ == '__main__':
+    unittest.main()
