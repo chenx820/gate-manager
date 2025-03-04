@@ -295,14 +295,13 @@ class Sweeper:
             self.voltage = self.start_voltage + frame * self.step \
                 if self.start_voltage < self.end_voltage \
                 else self.start_voltage - frame * self.step
-                
-        print("[INFO] Data collection complete.")
         
         if not is_2d_sweep:
             plt.savefig(f"{self.filename}.png", dpi=300)
             plt.close()
-            print("[INFO] Figure saved.")
+            print("[INFO] Data collection complete and figure saved. \n")
         else:
+            print("\n")
             return self.voltages, self.currents
 
     def sweep2D(self, X_swept_outputs: GatesGroup, X_start_voltage: float, X_end_voltage: float, X_step: float,
@@ -404,6 +403,7 @@ class Sweeper:
             
         plt.ioff()
         plt.close()
+        print("[INFO] Data collection complete and figure saved. \n")
         
         # Generate final 2D plot and save the figure
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -415,7 +415,7 @@ class Sweeper:
         ax.set_xlabel(self.set_gates_group_label(X_swept_outputs)+'[V]')
         ax.set_ylabel(self.set_gates_group_label(Y_swept_outputs)+'[V]')
         plt.savefig(f"{self.filename_2d}.png", dpi=500)
-        plt.close()
+        
 
 
     def sweepTime(self, measured_inputs: GatesGroup, total_time: float,
