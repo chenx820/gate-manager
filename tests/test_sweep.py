@@ -78,7 +78,7 @@ def test_set_filename(tmp_path):
     sweeper = Sweeper()
     # Use the attribute for saving files (assume code now uses is_save_file consistently).
     sweeper.is_save_file = True
-    sweeper.temperature = "300K"
+    sweeper.temperature = "CT"
     sweeper.x_label = "GateX"
     sweeper.y_label = "GateY"
     sweeper.comments = "test"
@@ -97,7 +97,7 @@ def test_set_filename(tmp_path):
 def test_log_params(tmp_path, monkeypatch):
     # Test that log_params writes expected information.
     sweeper = Sweeper()
-    sweeper.temperature = "300K"
+    sweeper.temperature = "CT"
     sweeper.x_label = "GateX"
     sweeper.y_label = "GateY"
     sweeper.device = "Device1"

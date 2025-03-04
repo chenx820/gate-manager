@@ -265,8 +265,8 @@ class Sweeper:
             curr_min = min(self.currents)
             curr_max = max(self.currents)
             if curr_min == curr_max:
-                curr_min -= 0.001
-                curr_max += 0.001
+                curr_min -= Decimal(0.001)
+                curr_max += Decimal(0.001)
                 self.ax2.set_ylim(curr_min, curr_max)
             else:
                 self.ax2.set_ylim(min(self.currents) - (max(self.currents)-min(self.currents))/3,
@@ -282,7 +282,7 @@ class Sweeper:
 
             if self.is_save_file:
                 with open(f"{self.filename}.txt", 'a') as file:
-                    file.write(f"{self.voltage:>24.8f}{self.currents:>24.8f} \n")
+                    file.write(f"{self.voltage:>24.8f}{current:>24.8f} \n")
             if is_2d_sweep:
                with open(f"{self.filename_2d}.txt", 'a') as file:
                    file.write(f"{self.Y_voltage:>24.8f}{self.voltage:>24.8f}{current:>24.16f} \n")
@@ -300,6 +300,7 @@ class Sweeper:
         
         if not is_2d_sweep:
             plt.savefig(f"{self.filename}.png", dpi=300)
+            plt.close()
             print("[INFO] Figure saved.")
         else:
             return self.voltages, self.currents
@@ -343,7 +344,7 @@ class Sweeper:
         
         current_dir = os.getcwd()
         # Set up a unique filename for 2D logging for each measured input
-        base_filename = f"{self.temperature}_[{self.set_gate_label(measured_inputs)}]_vs_[{self.x_label_2d}]_[{self.y_label_2d}]"
+        base_filename = f"{self.temperature}_[{self.z_label_2d}]_vs_[{self.x_label_2d}]_[{self.y_label_2d}]"
         if comments:
             base_filename += f"_{comments}"
         filepath = os.path.join(current_dir, base_filename)
@@ -489,8 +490,8 @@ class Sweeper:
             curr_min = min(self.currents)
             curr_max = max(self.currents)
             if curr_min == curr_max:
-                curr_min -= 0.001
-                curr_max += 0.001
+                curr_min -= Decimal(0.001)
+                curr_max += Decimal(0.001)
                 ax.set_ylim(curr_min, curr_max)
             else:
                 ax.set_ylim(min(self.currents) - (max(self.currents)-min(self.currents))/3,
