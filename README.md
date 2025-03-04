@@ -21,6 +21,12 @@ You can install `gate-manager` using `pip`:
 pip install git+https://github.com/chenx820/gate-manager.git
 ```
 
+or
+
+```bash
+pip install gate-manager
+```
+
 ## Development Installation
 
 Clone the repository and install in editable mode:
