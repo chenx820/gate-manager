@@ -58,6 +58,7 @@ SD8 = Gate(source=nanonis_i[8])
 # this should be automatic for the input gates grouping. maybe call it 'inputs' only?
 inputs = GatesGroup([t_D, b_D, SD4, SD5, SD6, SD7, SD8])
 
+
 # %% Define parameters for the experiment
 slew_rate = 0.1 
 for i in range(8):
@@ -69,6 +70,7 @@ params = {
     'amplification': (-1) * 10 ** 7, #-1 because of the inverting amplifier
     }
 sweeper = Sweeper(outputs, inputs, **params)
+
 
 # %% 1D sweep
 
@@ -89,6 +91,7 @@ param = {
     }
     
 sweeper.sweep1D(**param)
+
 
 # %% 2D sweep
 
@@ -111,6 +114,7 @@ param = {
         'comments': f'diamond'
         }
 sweeper.sweep2D(**params)
+
 
 # %% Turn off
 fingers.turn_off()

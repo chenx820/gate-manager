@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="gate-manager",                         
@@ -9,7 +9,7 @@ setup(
     long_description=open("README.md").read(),   
     long_description_content_type="text/markdown",
     url="https://github.com/chenx820/gate-manager", 
-    packages=find_packages(),                    
+    packages=["gate_manager"],                    
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
