@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gate-manager"
+version = "2.0.0"
+description = "A package for controlling and managing gate voltages in quantum devices."
+readme = "README.md"
+readme-content-type = "text/markdown"
+authors = [
+  { name = "Chen Huang", email = "chen.huang23@imperial.ac.uk" }
+]
+license = { file = "LICENSE" }
+urls = { Homepage = "https://github.com/chenx820/gate-manager" }
+requires-python = ">=3.6"
+dependencies = [
+    "nanonis_spm",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
