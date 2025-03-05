@@ -57,7 +57,7 @@ outputs = GatesGroup([output_gate_1, output_gate_2])
 inputs  = GatesGroup([input_gate_1])
 
 # Create a Sweeper instance
-sweeper = Sweeper(outputs=outputs, inputs=inputs, temperature="300K", device="QuantumDevice1")
+sweeper = Sweeper(outputs=outputs, inputs=inputs, temperature="CT", device="QuantumDevice1")
 
 # Prepare an initial state for the outputs
 initial_state = [
