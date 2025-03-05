@@ -38,10 +38,10 @@ class MockNanonis:
     def Signals_ValGet(self, read_index, _bool):
         """
         Return a nested list so that:
-            result[2][0] == current
+            result[2][0] == currents
         """
-        current = self.read_currents.get(read_index, 0.0)
-        return [None, None, [current, None]]
+        currents = self.read_currents.get(read_index, 0.0)
+        return [None, None, [currents, None]]
 
 
 class MockNanonisSource:
@@ -138,9 +138,9 @@ def test_get_volt(gate, mock_nanonis):
     assert gate._voltage == Decimal("1.23")
 
 def test_voltage_get_only(gate, mock_nanonis):
-    """Test that gate.voltage() returns the current voltage when no target is provided."""
+    """Test that gate.voltage() returns the currents voltage when no target is provided."""
     mock_nanonis.read_voltages[gate.source.read_index] = Decimal("2.34")
-    voltage = gate.voltage()  # No target provided; should read current voltage.
+    voltage = gate.voltage()  # No target provided; should read currents voltage.
     assert voltage == Decimal("2.34")
 
 def test_voltage_set_and_wait(gate, mock_nanonis):
@@ -187,13 +187,13 @@ def test_is_at_target_voltage_false(gate, mock_nanonis):
 
 def test_read_current(gate, mock_nanonis):
     """
-    Test read_current() uses Signals_ValGet() to get the current and adjusts it by the amplification factor.
+    Test read_current() uses Signals_ValGet() to get the currents and adjusts it by the amplification factor.
     """
-    # Suppose the raw current reading is 5e-7 (0.5 µA)
+    # Suppose the raw currents reading is 5e-7 (0.5 µA)
     mock_nanonis.read_currents[gate.source.read_index] = 5e-7
-    current = gate.read_current(amplification=-1e6)
+    currents = gate.read_current(amplification=-1e6)
     # Calculation: 5e-7 * 10^6 / -1e6 = -5e-7
-    assert abs(current - Decimal("-5E-7")) < Decimal("1E-10")
+    assert abs(currents - Decimal("-5E-7")) < Decimal("1E-10")
 
 #########################
 #  GatesGroup Tests     #

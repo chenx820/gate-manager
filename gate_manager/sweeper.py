@@ -24,7 +24,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 
-from .gate import Gate, GatesGroup
+from .gate import GatesGroup
+from .visualizer import Visualizer
 
 
 class Sweeper:
@@ -406,15 +407,9 @@ class Sweeper:
         print("[INFO] Data collection complete and figure saved. \n")
         
         # Generate final 2D plot and save the figure
-        fig, ax = plt.subplots(figsize=(8, 6))
-        im = ax.imshow(data, aspect='auto', cmap='bwr', origin='lower',
-                       extent=[min(X_start_voltage, X_end_voltage), max(X_start_voltage, X_end_voltage),
-                               min(Y_start_voltage, Y_end_voltage), max(Y_start_voltage, Y_end_voltage)])
-        plt.colorbar(im, ax=ax, label=r"I [uA]")
-        ax.set_title(f"2D Sweep: [{self.z_label_2d}] vs [{self.x_label_2d} & {self.y_label_2d}]")
-        ax.set_xlabel(self.set_gates_group_label(X_swept_outputs)+'[V]')
-        ax.set_ylabel(self.set_gates_group_label(Y_swept_outputs)+'[V]')
-        plt.savefig(f"{self.filename_2d}.png", dpi=500)
+        viz = Visualizer()
+        viz.viz2D(f"{self.filename_2d}.txt")
+
         
 
 

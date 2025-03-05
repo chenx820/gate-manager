@@ -10,7 +10,7 @@ import socket
 import os
 
 
-# Choose the current folder
+# Choose the currents folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
@@ -44,7 +44,7 @@ outputs = GatesGroup([t_P1, t_bar_S1, t_bar_12, t_global, t_b_s, res_S_D])
 fingers = GatesGroup([t_P1, t_bar_S1, t_bar_12, t_global])
 
 
-# %% Define input gates for reading current measurements
+# %% Define input gates for reading currents measurements
 
 t_D = Gate(source=nanonis_i[1], lines=[lines[1]])
 b_D = Gate(source=nanonis_i[2], lines=[lines[23]])

@@ -35,7 +35,7 @@ class DummyGate:
         return abs(self._voltage - float(voltage)) < tolerance
     
     def read_current(self, amplification):
-        # Return a dummy current value.
+        # Return a dummy currents value.
         return 0.001
     
     def turn_off(self, is_wait=True):
@@ -210,5 +210,5 @@ def test_sweepTime(monkeypatch):
     # Run a very short time sweep.
     sweeper.sweepTime(measured_inputs=inputs, total_time=0.2, time_step=0.1,
                       initial_state=initial_state, comments="time_test", is_save_file=False)
-    # Check that some current measurements were recorded.
+    # Check that some currents measurements were recorded.
     assert len(sweeper.currents) > 0

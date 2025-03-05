@@ -1,0 +1,12 @@
+--- Run started at 2025-03-05 17:01:20 ---
+      Filename:  None.txt 
+        Device:  Device1 
+     Amplifier:  1.0 
+     Slew Rate:  None [V/s] 
+   Swept Gates:  time 
+Measured Input:  In 
+    Total time:                      0.20 [s] 
+     Time Step:                      0.10 [s] 
+Initial Voltages of all outputs before sweep: 
+             Out       0.0000000000000000 [V]                                                                              Out 
+

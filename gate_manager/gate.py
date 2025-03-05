@@ -7,7 +7,7 @@ system for controlling experimental gates. The `Gate` class allows individual ga
 and reading, while `GatesGroup` facilitates simultaneous control of multiple gates.
 
 Classes:
-    Gate: Manages voltage and current measurement on a single gate in the Nanonis system.
+    Gate: Manages voltage and currents measurement on a single gate in the Nanonis system.
     GatesGroup: Provides collective control over a group of gates.
 
 Created on Tue Oct 22 16:08:06 2024
@@ -30,7 +30,7 @@ class Gate:
         lines (list of SemiqonLine): A list of SemiqonLine objects associated with the gate.
         label (str): A label combining all line labels, used to identify the gate.
         nanonisInstance (Nanonis): An instance of the Nanonis class for communication with the device.
-        _voltage (Decimal): The current voltage of the gate.
+        _voltage (Decimal): The currents voltage of the gate.
     """
 
     def __init__(self, source: NanonisSource = None, lines: list[SemiqonLine] = None):
@@ -39,7 +39,7 @@ class Gate:
         if self.lines is not None:
             self.label = "&".join(line.label for line in self.lines)
         self.nanonisInstance = self.source.nanonisInstance
-        self._voltage = None  # Initialize the current voltage
+        self._voltage = None  # Initialize the currents voltage
 
     def verify(self, target_voltage) -> None:
         """
@@ -77,10 +77,10 @@ class Gate:
 
     def get_volt(self) -> Decimal:
         """
-        Retrieves the current voltage from the gate.
+        Retrieves the currents voltage from the gate.
 
         Returns:
-            Decimal: The current voltage.
+            Decimal: The currents voltage.
         """
         self._voltage = Decimal(self.nanonisInstance.Signals_ValsGet([self.source.read_index], True)[2][1][0][0])
         return self._voltage
@@ -88,17 +88,17 @@ class Gate:
     def voltage(self, target_voltage: Union[float, Decimal] = None, is_wait: bool = True) -> Decimal:
         """
         Gets or sets the voltage for the gate. If a target voltage is provided, it sets the voltage.
-        If no value is provided, it returns the current voltage.
+        If no value is provided, it returns the currents voltage.
 
         Args:
-            target_voltage (float or Decimal, optional): The voltage to set. If None, returns the current voltage.
+            target_voltage (float or Decimal, optional): The voltage to set. If None, returns the currents voltage.
             is_wait (bool): If True, waits until the voltage reaches the target.
 
         Returns:
-            Decimal: The current or target voltage.
+            Decimal: The currents or target voltage.
         """
         if target_voltage is None:
-            # If no target is given, just return the current voltage
+            # If no target is given, just return the currents voltage
             self.get_volt()
             return self._voltage
         else:
@@ -120,7 +120,7 @@ class Gate:
     def is_at_target_voltage(self, target_voltage: Union[float, Decimal],
                              tolerance: Union[float, Decimal] = 1e-6) -> bool:
         """
-        Checks if the current voltage is within a specified tolerance of the target voltage.
+        Checks if the currents voltage is within a specified tolerance of the target voltage.
 
         Args:
             target_voltage (float or Decimal): The voltage to compare against.
@@ -134,13 +134,13 @@ class Gate:
 
     def read_current(self, amplification: float = -10 ** 6) -> Decimal:
         """
-        Reads the current from the gate, adjusted by the amplifier setting.
+        Reads the currents from the gate, adjusted by the amplifier setting.
 
         Args:
-            amplification (float): The amplification factor to adjust the current reading.
+            amplification (float): The amplification factor to adjust the currents reading.
 
         Returns:
-            Decimal: The adjusted current.
+            Decimal: The adjusted currents.
         """
         return Decimal(
             self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0] * 10 ** (6) / amplification)
