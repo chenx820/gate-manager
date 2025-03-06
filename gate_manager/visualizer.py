@@ -113,6 +113,7 @@ class Visualizer:
         ax.set_ylabel(self.y_label)
         plt.colorbar(im, ax=ax, label=self.z_label)
         plt.savefig(self.filename.replace('.txt', '.png'), dpi=500)
+        plt.close()
     
     
     def viz2D_slice(self, filename: str=None, x_target: float=None, y_target: float=None):
