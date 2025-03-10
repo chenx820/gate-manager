@@ -46,13 +46,13 @@ class Gate:
         Verifies that the target voltage is within the allowed range (-2V to 2V).
 
         Args:
-              target_voltage (float or Decimal): The target voltage to verify.
+            target_voltage (float or Decimal): The target voltage to verify.
 
         Raises:
             ValueError: If the target voltage is out of the specified range.
         """
-        min_voltage = -3.01
-        max_voltage = 3.01
+        min_voltage = -2.5
+        max_voltage = 2.5
         if target_voltage < min_voltage or target_voltage > max_voltage:
             raise ValueError(
                 f"{self.label} target voltage {target_voltage} is out of range {(min_voltage, max_voltage)}.")
@@ -142,8 +142,7 @@ class Gate:
         Returns:
             Decimal: The adjusted currents.
         """
-        return Decimal(
-            self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0] * 10 ** (6) / amplification)
+        return self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0] * 10 ** (6) / amplification
 
 
 class GatesGroup:
