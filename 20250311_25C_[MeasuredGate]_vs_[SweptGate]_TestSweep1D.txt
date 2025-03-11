@@ -1,6 +1,0 @@
-           SweptGate [V]       MeasuredGate [uA]
-              0.00000000               0.00000000 
-              0.10000000               0.00000000 
-           SweptGate [V]       MeasuredGate [uA]
-              0.00000000               0.00000000 
-              0.10000000               0.00000000 
