@@ -25,7 +25,7 @@ class Visualizer:
         
         self.x_label = None
         self.y_label = None
-        self.z_label = r'$I$ [nA]'
+        self.z_label = None
         self.filename = None
 
     def read_2D_file(self, filename: str):
@@ -88,31 +88,32 @@ class Visualizer:
         # Plotting
         fig, ax = plt.subplots(figsize=(12, 7))
         img = ax.imshow(
-            self.z_matrix, vmin=z_min, vmax=z_max, 
+            self.z_matrix, vmin=z_min, vmax=z_max,  
             cmap=cm, aspect='auto', origin='lower',    
             extent=[self.x_values[0], self.x_values[-1], self.y_values[0], self.y_values[-1]],
             interpolation='none',
         )
+
         
         # Plot decorators
         plt.style.use('fivethirtyeight')
-        plt.rc('legend', fontsize=22, framealpha = 0.9)
-        plt.rc('xtick', labelsize=24, color='#2C3E50') 
-        plt.rc('ytick', labelsize=24, color='#2C3E50')
+        plt.rc('legend', fontsize=10, framealpha = 0.9)
+        plt.rc('xtick', labelsize=12, color='#2C3E50') 
+        plt.rc('ytick', labelsize=12, color='#2C3E50')
         
         fig.patch.set_facecolor('white')
         
         # Colorbar customization
         barticks = np.linspace(z_min, z_max, 5)  # Generate bar ticks
-        barticks = np.around(barticks, 2)        # Round to 2 decimal places
         barticks_labels = [str(label) for label in barticks]
         barticks_labels[0] = f"< {barticks[0]}"
         barticks_labels[-1] = f"> {barticks[-1]}"
         
-        cbar = fig.colorbar(img, ticks=barticks, pad=0.005, extend='both')
-        cbar.ax.set_yticklabels(barticks_labels)  # Custom tick labels
-        cbar.ax.set_title(f'         {self.z_label}', fontsize=28, pad=10)  # Colorbar title
-        cbar.ax.tick_params(direction='in', width=2, length=5, labelsize=22)  # Colorbar ticks
+        cbar = fig.colorbar(img, pad=0.005, extend='both')
+        cbar.set_ticks(barticks)  # Custom tick marks
+        cbar.ax.set_yticklabels(barticks)   # Custom tick labels
+        cbar.ax.set_title(f'         {self.z_label}', fontsize=14, pad=10)  # Colorbar title
+        cbar.ax.tick_params(direction='in', width=2, length=5, labelsize=10)  # Colorbar ticks
         
         # Border
         ax.spines['right'].set_color('#2C3E50')
@@ -121,66 +122,16 @@ class Visualizer:
         ax.spines['top'].set_color('#2C3E50')
         
         # Axes labels
-        ax.set_xlabel(self.x_label, color='#2C3E50', fontsize=32) 
-        ax.set_ylabel(self.y_label, color='#2C3E50', fontsize=32)
+        ax.set_xlabel(self.x_label, color='#2C3E50', fontsize=14) 
+        ax.set_ylabel(self.y_label, color='#2C3E50', fontsize=14)
         
         #Ticks
         ax.tick_params(axis='y', direction='in', width=4, length=10 , pad=10 , right=True)
         ax.tick_params(axis='x', direction='in', width=4, length=10 , pad=10 , top=False)
 
         plt.tight_layout()
-        fig.savefig(self.filename.replace('.txt', '.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(self.filename.replace('.txt', '.png'), dpi=300, bbox_inches='tight')
+        print("[INFO]: 2D plot saved.")
+        
         
     
-    def viz2D_slice(self, filename: str=None, x_target: float=None, y_target: float=None):
-        """
-        Plots 1D currents vs. V_G at a specific V_SD value.
-        """
-        if filename:
-            self.filename = filename
-            self.read_2D_file(self.filename)
-            self.currents *= 1000  # Convert currents to nA
-        else:
-            raise ValueError("Please provide a filename.")
-
-        if x_target and y_target:
-            raise ValueError("Please choose only one target value.")
-        
-        # Extract data for the chosen y_target
-        elif y_target:
-            # Find the closest index to the target
-            idx = np.abs(self.y_values - self.y_target).argmin()
-            target = self.y_values[idx]
-            x_selected = self.x_values[self.y_values == self.y_values[idx]]
-            currents_selected = self.currents[self.y_values == self.y_values[idx]]
-
-            # Sort values in case the order is mixed
-            sorted_indices = np.argsort(x_selected)
-            voltages_selected = x_selected[sorted_indices]
-            label_selected = self.x_label
-            currents_selected = currents_selected[sorted_indices]
-            
-        # Extract data for the chosen x_target
-        elif x_target:
-            idx = np.abs(self.x_values - x_target).argmin()
-            target = self.x_values[idx]
-            y_selected = self.y_values[self.x_values == self.x_values[idx]]
-            currents_selected = self.currents[self.x_values == self.x_values[idx]]
-
-            # Sort values in case the order is mixed
-            sorted_indices = np.argsort(y_selected)
-            voltages_selected = y_selected[sorted_indices]
-            label_selected = self.y_label
-            currents_selected = currents_selected[sorted_indices]
-            
-        else:
-            raise ValueError("Please choose a target value.")
-
-        # Plotting
-        fig, ax = plt.subplots(figsize=(8, 6))
-        ax.plot(voltages_selected, currents_selected, linestyle='-', color='b')
-        ax.set_xlabel(label_selected, fontsize=14)
-        ax.set_ylabel(self.z_label, fontsize=14)
-        plt.grid()
-        plt.savefig(self.filename.replace('.txt', '')+f'{target:.2f}.png', dpi=300)
-        plt.show()

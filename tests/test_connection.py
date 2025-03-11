@@ -1,140 +1,122 @@
-# tests/test_connection.py
-
 import pytest
-from unittest.mock import MagicMock
-
-# Adjust the import path if necessary.
 from gate_manager.connection import (
     SemiqonLine,
     SemiqonLinesConnection,
     NanonisSource,
-    NanonisSourceConnection,
+    NanonisSourceConnection
 )
 
-#############################
-#    SemiqonLine Tests      #
-#############################
+# --- Tests for SemiqonLine class ---
 
-def test_semiqon_line_with_label():
-    """Test that a SemiqonLine constructed with a label sets the attribute correctly."""
-    line = SemiqonLine(label="TestLabel")
-    assert line.label == "TestLabel"
-
-def test_semiqon_line_default():
-    """Test that a SemiqonLine without a label has label set to None."""
+def test_semiqon_line_default_label():
+    """
+    Test that a SemiqonLine instance has a default label of None.
+    """
     line = SemiqonLine()
     assert line.label is None
 
-#############################
-# SemiqonLinesConnection Tests
-#############################
-
-def test_semiqon_lines_connection_lines():
+def test_semiqon_line_custom_label():
     """
-    Test that SemiqonLinesConnection creates the expected number of lines 
-    and that certain labels are set correctly.
+    Test that a SemiqonLine instance correctly sets a custom label.
+    """
+    custom_label = "Test Label"
+    line = SemiqonLine(label=custom_label)
+    assert line.label == custom_label
+
+# --- Tests for SemiqonLinesConnection class ---
+
+def test_semiqon_lines_connection_length_and_labels():
+    """
+    Test that SemiqonLinesConnection correctly initializes all SemiqonLine instances and their labels.
     """
     connection = SemiqonLinesConnection()
-    # There are 1 empty line + 12 top lines + 12 bottom lines = 25 total lines.
-    total_expected_lines = 25
-    assert len(connection.lines) == total_expected_lines
+    # According to the source code, the lines list should contain 1 (empty) + 12 (top) + 12 (bottom) = 25 elements.
+    assert len(connection.lines) == 25
 
-    # First line should be empty (label is None)
+    # The first element should be empty (None label)
     assert connection.lines[0].label is None
 
-    # Check top lines (indices 1 to 12)
     expected_top_labels = [
-        't_D',
-        't_bar_4D',
-        't_P4',
-        't_bar_34',
-        't_P3',
-        't_bar_23',
-        't_P2',
-        't_bar_12',
-        't_P1',
-        't_bar_S1',
-        't_s',
-        'res_S',
+        't_D', 't_bar_4D', 't_P4', 't_bar_34', 't_P3', 't_bar_23',
+        't_P2', 't_bar_12', 't_P1', 't_bar_S1', 't_s', 'res_S'
     ]
-    for i, expected_label in enumerate(expected_top_labels, start=1):
-        assert connection.lines[i].label == expected_label
-
-    # Check bottom lines (indices 13 to 24)
     expected_bottom_labels = [
-        'b_S',
-        'b_bar_S1',
-        'b_P1',
-        'b_bar_12',
-        'b_P2',
-        'b_bar_23',
-        'b_P3',
-        'b_bar_34',
-        'b_P4',
-        'b_bar_4D',
-        'b_D',
-        'res_D',
+        'b_S', 'b_bar_S1', 'b_P1', 'b_bar_12', 'b_P2', 'b_bar_23',
+        'b_P3', 'b_bar_34', 'b_P4', 'b_bar_4D', 'b_D', 'res_D'
     ]
-    for i, expected_label in enumerate(expected_bottom_labels, start=13):
-        assert connection.lines[i].label == expected_label
 
-#############################
-#   NanonisSource Tests     #
-#############################
+    # Check top line labels (indices 1 to 12)
+    for i, label in enumerate(expected_top_labels, start=1):
+        assert connection.lines[i].label == label
 
-def test_nanonis_source_attributes():
-    """Test that NanonisSource correctly sets its attributes."""
-    dummy_instance = MagicMock()
-    source = NanonisSource(label="Source1", read_index=5, write_index=2, nanonisInstance=dummy_instance)
-    assert source.label == "Source1"
-    assert source.read_index == 5
-    assert source.write_index == 2
-    assert source.nanonisInstance is dummy_instance
+    # Check bottom line labels (indices 13 to 24)
+    for i, label in enumerate(expected_bottom_labels, start=13):
+        assert connection.lines[i].label == label
 
-#############################
-# NanonisSourceConnection Tests
-#############################
+# --- Tests for NanonisSource class ---
 
-@pytest.fixture
-def dummy_nanonis_instance():
-    """Provide a dummy nanonis instance using a MagicMock."""
-    return MagicMock()
-
-def test_nanonis_source_connection_outputs(dummy_nanonis_instance):
+def test_nanonis_source_properties():
     """
-    Test that NanonisSourceConnection creates the expected outputs.
-    There should be 9 outputs with the proper labels and indices.
+    Test that NanonisSource properties are correctly assigned.
     """
-    connection = NanonisSourceConnection(nanonisInstance=dummy_nanonis_instance)
-    # Check that there are 9 output sources.
-    assert len(connection.outputs) == 9
+    test_label = "Test Source"
+    test_read_index = 5
+    test_write_index = 10
+    dummy_nanonis = object()  # Dummy object to simulate a Nanonis instance
 
-    # First output is empty
-    assert connection.outputs[0].label is None
+    source = NanonisSource(
+        label=test_label,
+        read_index=test_read_index,
+        write_index=test_write_index,
+        nanonisInstance=dummy_nanonis
+    )
+    assert source.label == test_label
+    assert source.read_index == test_read_index
+    assert source.write_index == test_write_index
+    assert source.nanonisInstance == dummy_nanonis
 
-    # Check the details of the first non-empty output
-    output1 = connection.outputs[1]
-    assert output1.label == 'Nanonis output1'
-    assert output1.read_index == 24
-    assert output1.write_index == 1
-    assert output1.nanonisInstance is dummy_nanonis_instance
+# --- Tests for NanonisSourceConnection class ---
 
-def test_nanonis_source_connection_inputs(dummy_nanonis_instance):
+def test_nanonis_source_connection_outputs():
     """
-    Test that NanonisSourceConnection creates the expected inputs.
-    There should be 9 inputs with the proper labels and read indices.
+    Test that the outputs list in NanonisSourceConnection is initialized correctly.
     """
-    connection = NanonisSourceConnection(nanonisInstance=dummy_nanonis_instance)
-    # Check that there are 9 input sources.
-    assert len(connection.inputs) == 9
+    conn = NanonisSourceConnection(nanonisInstance=None)
+    # The outputs list should contain 9 elements: 1 empty source + 8 output sources.
+    assert len(conn.outputs) == 9
 
-    # First input is empty
-    assert connection.inputs[0].label is None
+    # The first output should be empty.
+    assert conn.outputs[0].label is None
 
-    # Check the details of the first non-empty input
-    input1 = connection.inputs[1]
-    assert input1.label == 'Nanonis input1'
-    assert input1.read_index == 0
-    # write_index is not provided for inputs in the constructor, so it should be None.
-    assert input1.write_index is None
-    assert input1.nanonisInstance is dummy_nanonis_instance
+    # Verify each output source's properties.
+    for i in range(1, 9):
+        source = conn.outputs[i]
+        expected_label = f'Nanonis output{i}'
+        expected_read_index = 23 + i  # For example, output1 should have read_index 24.
+        expected_write_index = i
+        assert source.label == expected_label
+        assert source.read_index == expected_read_index
+        assert source.write_index == expected_write_index
+        assert source.nanonisInstance is None
+
+def test_nanonis_source_connection_inputs():
+    """
+    Test that the inputs list in NanonisSourceConnection is initialized correctly.
+    """
+    conn = NanonisSourceConnection(nanonisInstance=None)
+    # The inputs list should contain 9 elements: 1 empty source + 8 input sources.
+    assert len(conn.inputs) == 9
+
+    # The first input should be empty.
+    assert conn.inputs[0].label is None
+
+    # Verify each input source's properties.
+    for i in range(1, 9):
+        source = conn.inputs[i]
+        expected_label = f'Nanonis input{i}'
+        expected_read_index = i - 1  # For example, input1 should have read_index 0.
+        assert source.label == expected_label
+        assert source.read_index == expected_read_index
+        # Input sources should not have write_index (it should be None)
+        assert source.write_index is None
+        assert source.nanonisInstance is None

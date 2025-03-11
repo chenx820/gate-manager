@@ -66,7 +66,6 @@ for i in range(8):
 params = {
     'device': "Semiqon 36",
     'temperature': "CT",
-    'slew_rate': slew_rate,
     'amplification': (-1) * 10 ** 7, #-1 because of the inverting amplifier
     }
 sweeper = Sweeper(outputs, inputs, **params)

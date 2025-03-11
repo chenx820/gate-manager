@@ -1,74 +1,117 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 import pytest
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")  # Use a non-interactive backend for testing
+import matplotlib.pyplot as plt
 
 from gate_manager.visualizer import Visualizer
 
-# Sample file content with a header that splits into 6 tokens and will be combined into 3 labels.
-SAMPLE_DATA = """t_bar_S1 [V] t_P1 [V] t_D [uA]
-0.00000000 0.00000000 0.0001145153073594
-0.00000000 0.05000000 0.0001172252697870
-0.00000000 0.10000000 0.0001161052729003
-0.05000000 0.00000000 0.0001136718783528
-0.05000000 0.05000000 0.0001155693084002
-0.05000000 0.10000000 0.0001160038053058
-0.10000000 0.00000000 0.0001158740953542
-0.10000000 0.05000000 0.0001144313835539
-0.10000000 0.10000000 0.0001152709941380
-"""
+# ---------------------------
+# Fixtures for Test Data Files
+# ---------------------------
 
 @pytest.fixture
-def sample_file(tmp_path):
-    """Create a temporary sample file containing 2D data."""
-    file_path = tmp_path / "sample.txt"
-    file_path.write_text(SAMPLE_DATA)
-    return str(file_path)
+def valid_2d_file(tmp_path):
+    """
+    Create a temporary valid 2D data file.
+    
+    The file has a header with three labels and four data rows:
+        Header: "Y_label X_label Z_label"
+        Data:
+            0 0 1
+            0 1 2
+            1 0 3
+            1 1 4
+    """
+    file_content = (
+        "Y_label X_label Z_label\n"
+        "0 0 1\n"
+        "0 1 2\n"
+        "1 0 3\n"
+        "1 1 4\n"
+    )
+    file_path = tmp_path / "test_data.txt"
+    file_path.write_text(file_content)
+    return file_path
 
-def test_read_2D_file(sample_file):
-    """Test that read_2D_file correctly parses the header and data."""
-    vis = Visualizer()
-    vis.read_2D_file(sample_file)
-    # Expect the headers to be combined into:
-    # y_label = "t_bar_S1 [V]", x_label = "t_P1 [V]", z_label = "t_D [uA]"
-    assert vis.y_label == "t_bar_S1 [V]"
-    assert vis.x_label == "t_P1 [V]"
-    assert vis.z_label == "t_D [uA]"
-    # Check that the data arrays have 9 entries.
-    assert len(vis.x_values) == 9
-    assert len(vis.y_values) == 9
-    assert len(vis.currents) == 9
+@pytest.fixture
+def invalid_header_file(tmp_path):
+    """
+    Create a temporary file with an invalid header (only 2 tokens).
+    """
+    file_content = (
+        "Y_label X_label\n"
+        "0 0 1\n"
+        "0 1 2\n"
+    )
+    file_path = tmp_path / "invalid_header.txt"
+    file_path.write_text(file_content)
+    return file_path
 
-def test_viz2D(sample_file):
-    """Test viz2D generates a PNG file for the given data."""
-    vis = Visualizer()
-    # Use arbitrary thresholds for testing.
-    vis.viz2D(sample_file, lower_threshold=-1, upper_threshold=1)
-    # The output file is saved as the filename with .txt replaced by .png.
-    png_file = sample_file.replace(".txt", ".png")
-    assert os.path.exists(png_file)
-    # Clean up: remove the generated file and close figures.
-    os.remove(png_file)
+# ---------------------------
+# Tests for Visualizer.read_2D_file()
+# ---------------------------
+
+def test_read_2D_file_valid(valid_2d_file):
+    """
+    Test that read_2D_file correctly reads a valid 2D data file.
+    """
+    viz = Visualizer()
+    viz.read_2D_file(str(valid_2d_file))
+    
+    # Verify that the header tokens are assigned correctly.
+    # Note: self.y_label gets the first token, self.x_label the second, self.z_label the third.
+    assert viz.y_label == "Y_label"
+    assert viz.x_label == "X_label"
+    assert viz.z_label == "Z_label"
+    
+    # Check that the pivoted data has the correct shape and values.
+    # Expect x_values: [0, 1], y_values: [0, 1] and z_matrix as [[1, 2], [3, 4]].
+    np.testing.assert_allclose(viz.x_values, [0, 1], atol=1e-6)
+    np.testing.assert_allclose(viz.y_values, [0, 1], atol=1e-6)
+    expected_matrix = np.array([[1, 2],
+                                [3, 4]])
+    np.testing.assert_allclose(viz.z_matrix, expected_matrix, atol=1e-6)
+
+def test_read_2D_file_invalid_header(invalid_header_file):
+    """
+    Test that read_2D_file raises a ValueError when the header does not contain 3 labels.
+    """
+    viz = Visualizer()
+    with pytest.raises(ValueError):
+        viz.read_2D_file(str(invalid_header_file))
+
+# ---------------------------
+# Tests for Visualizer.viz2D()
+# ---------------------------
+
+def test_viz2D_creates_png(tmp_path, valid_2d_file, monkeypatch):
+    """
+    Test that viz2D creates a PNG file from the 2D data file.
+    
+    The test redirects the working directory to a temporary path so that the output PNG
+    is created in that temporary directory.
+    """
+    # Redirect os.getcwd() to the temporary path.
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+    
+    viz = Visualizer()
+    # Call viz2D with the valid file.
+    viz.viz2D(str(valid_2d_file), z_min=0, z_max=5)
+    
+    # The output filename is based on the input file name with '.txt' replaced by '.png'
+    output_png = str(valid_2d_file).replace('.txt', '.png')
+    assert os.path.isfile(output_png)
+    
+    # Clean up the generated file.
+    os.remove(output_png)
     plt.close('all')
 
-def test_viz2D_slice_x_target(sample_file):
-    """Test viz2D_slice using the x_target branch (i.e. slice along x)."""
-    vis = Visualizer()
-    # Call viz2D_slice with an x_target value; do not provide y_target.
-    vis.viz2D_slice(filename=sample_file, x_target=0.05)
-    # The method saves a file named <filename without .txt> + f'{target:.2f}.png'
-    # Read the file to get x_values first.
-    vis.read_2D_file(sample_file)
-    # The second column (x_values) in our sample: 0.00000000, 0.05000000, 0.10000000, ...
-    # The closest to 0.05 is 0.05.
-    target = 0.05
-    expected_png = sample_file.replace(".txt", "") + f"{target:.2f}.png"
-    assert os.path.exists(expected_png)
-    os.remove(expected_png)
-    plt.close('all')
-
-def test_viz2D_slice_invalid(sample_file):
-    """Test that providing both x_target and y_target raises a ValueError."""
-    vis = Visualizer()
-    with pytest.raises(ValueError, match="Please choose only one target value."):
-        vis.viz2D_slice(filename=sample_file, x_target=0.05, y_target=0.1)
+def test_viz2D_no_filename():
+    """
+    Test that viz2D raises a ValueError when no filename is provided.
+    """
+    viz = Visualizer()
+    with pytest.raises(ValueError):
+        viz.viz2D("")
