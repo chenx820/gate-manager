@@ -110,6 +110,8 @@ param = {
             [t_bar_12, 1],
             [t_global, 0.8]
         ],
+        'voltage_unit': 'V',
+        'current_unit': 'nA',
         'comments': f'diamond'
         }
 sweeper.sweep2D(**params)

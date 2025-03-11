@@ -24,7 +24,7 @@ from tqdm import tqdm
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
-from .gate import GatesGroup
+from .gate import GatesGroup, Gate
 from .visualizer import Visualizer
 
 
@@ -33,7 +33,12 @@ class Sweeper:
     Sweeper class to perform and log voltage sweeps on defined gates.
     """
 
-    def __init__(self, outputs=None, inputs=None, amplification=None, temperature=None, device=None):
+    def __init__(self, 
+                 outputs: GatesGroup = None, 
+                 inputs: GatesGroup = None, 
+                 amplification: float = None, 
+                 temperature: str = None, 
+                 device: str = None) -> None:
         self.outputs = outputs
         self.inputs = inputs
         self.amplification = amplification
@@ -60,7 +65,13 @@ class Sweeper:
         self.currents = []
         self.is_2d_sweep = False
         
-    def _set_units(self, voltage_unit='V', current_unit='uA'):
+        # Units
+        self.voltage_unit = None
+        self.current_unit = None
+        self.voltage_scale = 1
+        self.current_scale = 1
+        
+    def _set_units(self, voltage_unit: str = 'V', current_unit: str = 'uA') -> None:
         """Set voltage and current units."""
         unit_map = {'V': 1, 'mV': 1e3, 'uV': 1e6}
         self.voltage_scale = unit_map.get(voltage_unit, 1)
@@ -69,43 +80,29 @@ class Sweeper:
         self.current_scale = unit_map.get(current_unit, 1)
 
 
-    def _set_gates_group_label(self, gates_group):
-        """
-        Generate a label by combining the labels from all lines in a group of gates.
-
-        Args:
-            gates_group (GatesGroup): The group of gates.
-
-        Returns:
-            str: Combined label from all gate lines.
-        """
+    def _set_gates_group_label(self, gates_group: GatesGroup) -> str:
+        """Generate a label by combining the labels from all lines in a group of gates."""
         return " & ".join(line.label for gate in gates_group.gates for line in gate.lines)
 
-    def _set_gate_label(self, gate):
-        """
-        Generate a label for a single gate by combining its line labels.
-
-        Args:
-            gate (Gate): The gate to label.
-
-        Returns:
-            str: Combined label from the gate's lines.
-        """
+    def _set_gate_label(self, gate: Gate) -> str:
+        """Generate a label for a single gate by combining its line labels."""
         return " & ".join(line.label for line in gate.lines)
 
-    def _set_filename(self, prefix):
+    def _set_filename(self, prefix: str) -> None:
         """Generate a unique filename for saving data."""
         if prefix == '1D':
             base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]"
         elif prefix == '2D':
             base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]_[{self.y_label}]"
+        elif prefix == 'time':
+            base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.y_label}]_vs_time"
         else:
             raise ValueError("Invalid prefix for filename.")
         if self.comments:
             base_filename += f"_{self.comments}"
         self.filename = self._get_unique_filename(base_filename)
 
-    def _get_unique_filename(self, base_filename):
+    def _get_unique_filename(self, base_filename: str) -> str:
         """Ensure unique filenames to prevent overwriting."""
         filepath = os.path.join(os.getcwd(), base_filename)
         if not os.path.isfile(filepath + '.txt'):
@@ -117,21 +114,22 @@ class Sweeper:
         return f"{base_filename}_run{counter}"
             
 
-    def _log_params(self, type='voltage', status='start') -> None:
+    def _log_params(self, sweep_type: str = 'voltage', status: str = 'start') -> None:
         """
         Log sweep parameters and experimental metadata to a file.
 
         Args:
-            sweep_type (str): Type of sweep ('voltage' or 'time') to log specific parameters.
+            sweep_type (str): Type of sweep ('voltage', 'time', etc.) to log specific parameters.
+            status (str): 'start' or 'end' of the run.
         """
         if status == 'start':
             self.log_filename = "log"
             if self.comments:
                 self.log_filename += f"_{self.comments}"
             with open(f"{self.log_filename}.txt", 'a') as file:
-                self.tmp_time = datetime.now()
+                self.start_time = datetime.now()
                 file.write(
-                    f"--- Run started at {self.tmp_time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+                    f"---- Run started at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')} ----\n")
                 file.write(f"{'Filename: ':>16} {self.filename}.txt \n")
                 file.write(f"{'Device: ':>16} {self.device} \n")
                 file.write(f"{'Voltage Unit: ':>16} {self.voltage_unit} \n")
@@ -139,49 +137,47 @@ class Sweeper:
                 file.write(f"{'Measured Input: ':>16} {self.z_label} \n")
                 file.write("\n")
                 file.write(f"{'X Swept Gates: ':>16} {self.x_label} \n")
-                if type == 'voltage':
-                    file.write(f"{'Start Voltage: ':>16} {self.start_voltage*self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
-                    file.write(f"{'End Voltage: ':>16} {self.end_voltage*self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
-                    file.write(f"{'Step Size: ':>16} {self.step*self.voltage_scale:24.16f} [{self.voltage_unit}] \n")
+                if sweep_type == 'voltage':
+                    file.write(f"{'Start Voltage: ':>16} {self.start_voltage * self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
+                    file.write(f"{'End Voltage: ':>16} {self.end_voltage * self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
+                    file.write(f"{'Step Size: ':>16} {self.step * self.voltage_scale:24.16f} [{self.voltage_unit}] \n")
                     file.write("\n")
                 if self.is_2d_sweep:
                     file.write(f"{'Y Swept Gates: ':>16} {self.y_label} \n")
-                    file.write(f"{'Start Voltage: ':>16} {self.Y_voltage*self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
-                    file.write(f"{'End Voltage: ':>16} {self.Y_end_voltage*self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
-                    file.write(f"{'Step Size: ':>16} {self.Y_step*self.voltage_scale:24.16f} [{self.voltage_unit}] \n")
+                    file.write(f"{'Start Voltage: ':>16} {self.Y_voltage * self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
+                    file.write(f"{'End Voltage: ':>16} {self.Y_end_voltage * self.voltage_scale:>24.16f} [{self.voltage_unit}] \n")
+                    file.write(f"{'Step Size: ':>16} {self.Y_step * self.voltage_scale:24.16f} [{self.voltage_unit}] \n")
                     file.write("\n")
-                if type == 'time':
-                    file.write(f"{'Total time: ':>16} {self.total_time:>24.2f} [s] \n")
+                if sweep_type == 'time':
+                    file.write(f"{'Total Time: ':>16} {self.total_time:>24.2f} [s] \n")
                     file.write(f"{'Time Step: ':>16} {self.time_step:>24.2f} [s] \n")
                     file.write("\n")
                 file.write("Initial Voltages of all outputs before sweep: \n")
                 for output_gate in self.outputs.gates:
                     file.write(
-                        f"{' & '.join(line.label for line in output_gate.lines):>60} {output_gate.voltage()*self.voltage_scale:>24.16f} [{self.voltage_unit}] {output_gate.source.label:>16} \n")
+                        f"{' & '.join(line.label for line in output_gate.lines):>60} {output_gate.voltage() * self.voltage_scale:>24.16f} [{self.voltage_unit}] {output_gate.source.label:>16} \n")
                 file.write("\n")
         elif status == 'end':
-            total_time_elapsed = datetime.now() - self.tmp_time
+            total_time_elapsed = datetime.now() - self.start_time
             hours, remainder = divmod(total_time_elapsed.total_seconds(), 3600)
             minutes, seconds = divmod(remainder, 60)
             with open(f"{self.log_filename}.txt", 'a') as file:
-                file.write(f"Total time: {int(hours)}h {int(minutes)}m {int(seconds)}s \n")
+                file.write(f"Total Time: {int(hours)}h {int(minutes)}m {int(seconds)}s \n")
                 file.write(
-                    f"--- Run ended at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+                    f"---- Run ended at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ----\n")
 
-    def sweep1D(
-        self, 
-        swept_outputs: GatesGroup, 
-        measured_inputs: GatesGroup, 
-        start_voltage: float, 
-        end_voltage: float,
-        step: float, 
-        initial_state: list = None, 
-        voltage_unit: str='V',
-        current_unit: str='uA',
-        comments: str = None, 
-        ax2=None, 
-        is_2d_sweep=False
-        ) -> None:
+    def sweep1D(self, 
+                swept_outputs: GatesGroup, 
+                measured_inputs: GatesGroup, 
+                start_voltage: float, 
+                end_voltage: float,
+                step: float, 
+                initial_state: list = None, 
+                voltage_unit: str='V',
+                current_unit: str='uA',
+                comments: str = None, 
+                ax2=None, 
+                is_2d_sweep: bool = False):
         """
         Perform a 1D voltage sweep and generate an animated plot.
 
@@ -192,6 +188,8 @@ class Sweeper:
             end_voltage (float): Ending voltage.
             step (float): Voltage increment for each step.
             initial_state (list): List of tuples (gate, init_voltage) for initial state.
+            voltage_unit (str): Unit for voltage.
+            current_unit (str): Unit for current.
             comments (str): Additional comments for logging.
             ax2: Optional axis for plotting if already provided.
             is_2d_sweep (bool): Flag indicating whether this sweep is part of a 2D sweep.
@@ -201,7 +199,8 @@ class Sweeper:
         """
         if step < 0:
             raise ValueError("Step size must be positive.")
-        # Set sweep labels
+        
+        # Set sweep labels and units
         self.x_label = self._set_gates_group_label(swept_outputs)
         self.z_label = self._set_gates_group_label(measured_inputs)
         self.voltage_unit = voltage_unit
@@ -218,9 +217,10 @@ class Sweeper:
         self.end_voltage = end_voltage
         self.step = step
 
-        # Ramp outputs: turn off idle gates first
         pbar = tqdm(total=len(self.outputs.gates) + len(swept_outputs.gates), desc="[INFO] Ramping voltage", ncols=80,
                     leave=True)
+        
+        # Ramp outputs: turn off idle gates first
         idle_gates = [gate for gate in self.outputs.gates if gate not in [state[0] for state in initial_state]]
         GatesGroup(idle_gates).turn_off()
         pbar.update(len(idle_gates))
@@ -245,10 +245,10 @@ class Sweeper:
         # Set up plotting
         if self.ax2 is None:
             plt.ion()
-            fig, self.ax2 = plt.subplots(1, 1, figsize=(8, 6))
+            fig, self.ax2 = plt.subplots(1, 1, figsize=(12, 7))
         else:
             self.ax2.clear()
-            self.ax2.set_title(f"{self.y_label} Voltage: {self.Y_voltage*self.voltage_scale:.3f} [{self.voltage_unit}]")
+            self.ax2.set_title(f"{self.y_label} Voltage: {self.Y_voltage * self.voltage_scale:.3f} [{self.voltage_unit}]")
         self.ax2.set_xlabel(f"{self.x_label} [{self.voltage_unit}]")
         self.ax2.set_ylabel(f"{self.z_label} [{self.current_unit}]")
         
@@ -256,22 +256,22 @@ class Sweeper:
         self.currents = []
         self.voltage = self.start_voltage
 
-        # Log sweep parameters
+        # Log sweep parameters (for non-2D sweeps)
         if not self.is_2d_sweep:
             self._log_params(status='start')
             with open(f"{self.filename}.txt", 'a') as file:
-                header = f"{self.x_label} [{self.voltage_unit}]".rjust(24) + f"{self.z_label} [{self.current_unit}]".rjust(24)
+                header = (f"{self.x_label} [{self.voltage_unit}]".rjust(24) + 
+                          f"{self.z_label} [{self.current_unit}]".rjust(24))
                 file.write(header + "\n")
 
         print(
-            f"[INFO] Start sweeping {self.x_label} from {self.start_voltage*self.voltage_scale} [{self.voltage_unit}] to {self.end_voltage*self.voltage_scale} [{self.voltage_unit}].")
+            f"[INFO] Start sweeping {self.x_label} from {self.start_voltage*self.voltage_scale} " 
+            f"[{self.voltage_unit}] to {self.end_voltage*self.voltage_scale} [{self.voltage_unit}].")
         
 
         self.lines, = self.ax2.plot([], [])
-        
-        # Execute sweep
-        total = round(abs(self.end_voltage - self.start_voltage) / self.step + 1)
-        pbar = tqdm(total=total, desc="[INFO] Sweeping", ncols=80, leave=True) 
+        total_steps = round(abs(self.end_voltage - self.start_voltage) / self.step + 1)
+        pbar = tqdm(total=total_steps, desc="[INFO] Sweeping", ncols=80, leave=True) 
         frame = 0
         
         while True:
@@ -292,12 +292,8 @@ class Sweeper:
             if curr_min == curr_max:
                 curr_min -= 0.001
                 curr_max += 0.001
-                self.ax2.set_ylim(curr_min, curr_max)
-            else:
-                self.ax2.set_ylim(
-                    min(self.currents) - (max(self.currents) - min(self.currents)) / 4,
-                    max(self.currents) + (max(self.currents) - min(self.currents)) / 4
-                    )
+            self.ax2.set_ylim(min(self.currents) - (curr_max - curr_min) / 4,
+                              max(self.currents) + (curr_max - curr_min) / 4)
             self.lines.set_data(self.voltages, self.currents)
 
             plt.draw()
@@ -307,9 +303,12 @@ class Sweeper:
 
             with open(f"{self.filename}.txt", 'a') as file:
                 if self.is_2d_sweep:
-                    file.write(f"{self.Y_voltage*self.voltage_scale:>24.8f} {self.voltage*self.voltage_scale:>24.8f} {current:>24.8f} \n")
+                    file.write(f"{self.Y_voltage * self.voltage_scale:>24.8f} " 
+                               f"{self.voltage * self.voltage_scale:>24.8f} "
+                               f"{current:>24.8f} \n")
                 else: 
-                    file.write(f"{self.voltage*self.voltage_scale:>24.8f} {current:>24.8f} \n")
+                    file.write(f"{self.voltage * self.voltage_scale:>24.8f} "
+                               f"{current:>24.8f} \n")
                     
             # Check if sweep is complete    
             if (self.start_voltage < self.end_voltage and self.voltage > self.end_voltage - 1e-6) or (
@@ -343,8 +342,8 @@ class Sweeper:
                 Y_step: float,
                 measured_inputs: GatesGroup, 
                 initial_state: list, 
-                voltage_unit: str='V',
-                current_unit: str='uA',
+                voltage_unit: str = 'V',
+                current_unit: str = 'uA',
                 comments: str = None):
         """
         Perform a 2D voltage sweep over two axes by sweeping one set of outputs for each voltage
@@ -361,6 +360,8 @@ class Sweeper:
             Y_step (float): Voltage step for Y axis.
             measured_inputs (GatesGroup): Group of input gates for measurements.
             initial_state (list): List of tuples (gate, init_voltage) for initial settings.
+            voltage_unit (str): Voltage unit.
+            current_unit (str): Current unit.
             comments (str): Additional comments for logging.
         """
         self.X_start_voltage = X_start_voltage
@@ -376,6 +377,7 @@ class Sweeper:
         
         self._set_units(self.voltage_unit, self.current_unit)
         
+        # Prepare parameters for the 1D sweep call
         params = {
             # here we use the variable name for the gate which is okay
             'swept_outputs': X_swept_outputs,
@@ -387,6 +389,7 @@ class Sweeper:
             'voltage_unit': voltage_unit,
             'current_unit': current_unit,
             'comments': comments,
+            'ax2': None,
             'is_2d_sweep': self.is_2d_sweep
         }
         initial_state_basic = initial_state.copy()
@@ -399,9 +402,9 @@ class Sweeper:
         self._set_filename('2D')
         
         with open(f"{self.filename}.txt", 'a') as file:
-            header = f"{self.y_label} [{self.voltage_unit}]".rjust(24)
-            header += f"{self.x_label} [{self.voltage_unit}]".rjust(24)
-            header += f"{self.z_label} [{self.current_unit}]".rjust(24)
+            header = (f"{self.y_label} [{self.voltage_unit}]".rjust(24) +
+                      f"{self.x_label} [{self.voltage_unit}]".rjust(24) +
+                      f"{self.z_label} [{self.current_unit}]".rjust(24))
             file.write(header + "\n")
             
         # Set up 2D plotting with two subplots
@@ -416,6 +419,8 @@ class Sweeper:
         Y_num = int(round(abs(self.Y_end_voltage - self.Y_start_voltage) / Y_step)) + 1
         data = np.full((Y_num, X_num), np.nan)
         
+        self._log_params(sweep_type='voltage', status='start')
+        
         # Define custom colormap
         colorsbar = ['#02507d', '#ede8e5', '#b5283b']
         cm = LinearSegmentedColormap.from_list('', colorsbar, N=500)
@@ -425,14 +430,12 @@ class Sweeper:
             extent=[self.X_start_voltage, self.X_end_voltage, self.Y_start_voltage, self.Y_end_voltage], 
             interpolation='none'
             )
-
         self.fig.patch.set_facecolor('white')
 
         cbar = self.fig.colorbar(self.img, ax=self.ax1, pad=0.005, extend='both')
-        cbar.ax.set_title(rf'         {self.z_label} [{self.current_unit}]', pad=10)  # Colorbar 标题
+        cbar.ax.set_title(rf'         {self.z_label} [{self.current_unit}]', pad=10)  # Colorbar title
         cbar.ax.tick_params(direction='in', width=2, length=5, labelsize=12)  # Colorbar ticks
 
-        data_matrix = []
         Y_voltage = Y_start_voltage
         idx = 0
         while True:
@@ -446,14 +449,14 @@ class Sweeper:
             _, Z_values = self.sweep1D(**params)
             
             data[idx] = Z_values
-            data_matrix.append(Z_values)
             self.img.set_data(data)
             
-            self.img.set_clim(np.nanmin(data[np.isfinite(data)]), np.nanmax(data[np.isfinite(data)]))
-            barticks = np.linspace(np.nanmin(data), np.nanmax(data), 5)  
+            clim_min = np.nanmin(data[np.isfinite(data)])
+            clim_max = np.nanmax(data[np.isfinite(data)])
+            self.img.set_clim(clim_min, clim_max)
+            barticks = np.linspace(clim_min, clim_max, 5)
             cbar.set_ticks(barticks) 
             cbar.ax.set_yticklabels([f"{t:.2f}" for t in barticks]) 
-
             cbar.update_normal(self.img)
             self.fig.canvas.draw_idle()
             
@@ -466,14 +469,18 @@ class Sweeper:
         plt.ioff()
         print("[INFO] Data collection complete. ")
         plt.close('all')
-        self._log_params(status='end')
+        self._log_params(sweep_type='voltage', status='end')
         
         # Generate final 2D plot and save the figure
         viz = Visualizer()
         viz.viz2D(f"{self.filename}.txt")
         
-    def sweepTime(self, measured_inputs: GatesGroup, total_time: float,
-                time_step: float, initial_state: list = None, comments: str = None) -> None:
+    def sweepTime(self, 
+                  measured_inputs: GatesGroup, 
+                  total_time: float,
+                  time_step: float, 
+                  initial_state: list = None, 
+                  comments: str = None) -> None:
         """
         Perform a time-based sweep by recording current measurements over a specified duration.
 
@@ -485,16 +492,17 @@ class Sweeper:
             comments (str): Additional comments for logging.
         """
         self.x_label = 'time'
-        self.y_label = self._set_gates_group_label(measured_inputs)
+        self.z_label = self._set_gates_group_label(measured_inputs)
         self.comments = comments
         self._set_filename('time')
 
         self.total_time = total_time
         self.time_step = time_step
 
-        # Ramp outputs: turn off gates not in the initial state
         pbar = tqdm(total=len(self.outputs.gates), desc="[INFO] Ramping voltage", ncols=80,
                     leave=True)
+        
+        # Ramp outputs: turn off gates not in the initial state
         idle_gates = [gate for gate in self.outputs.gates if gate not in [state[0] for state in initial_state]]
         GatesGroup(idle_gates).turn_off()
         pbar.update(len(idle_gates))
@@ -511,47 +519,41 @@ class Sweeper:
         time.sleep(0.1)
 
         # Set up plotting for time sweep
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(12, 7))
         lines, = ax.plot([], [])
         ax.set_xlabel(f"{self.x_label} [s]")
-        ax.set_ylabel(f"{self.y_label} [uA]")
+        ax.set_ylabel(f"{self.z_label} [uA]")
 
         self.times = []
         self.currents = []
 
         # Log time sweep parameters
-        self._log_params(type="time")
-
-        print("[INFO] Start recording time sweep.")
+        self._log_params(sweep_type='time', status='start')
         with open(f"{self.filename}.txt", 'a') as file:
-            header = f"{self.x_label + ' [s]':>24}{self.y_label + ' [uA]':>24}"
+            header = f"{'time [s]':>24} {self.z_label + ' [uA]':>24}"
             file.write(header + "\n")
 
-        total = self.total_time // self.time_step
-        pbar = tqdm(total=total, desc="[INFO] Sweeping", ncols=80, leave=True)  # progress bar
+        total_steps = int(self.total_time // self.time_step)
+        pbar = tqdm(total=total_steps, desc="[INFO] Sweeping", ncols=80, leave=True)  # progress bar
         frame = 0
         initial_time = time.time()
-        current_time_list = []
+        time_list = []
         
+        print("[INFO] Start recording time sweep.")
         while True:
-            self.current_time = time.time() - initial_time
-            current_time_list.append(self.current_time)
+            current_elapsed = time.time() - initial_time
+            time_list.append(current_elapsed)
             current = measured_inputs.gates[0].read_current(self.amplification)
             self.currents.append(current)
             
-            ax.set_xlim(0.0, self.current_time + self.time_step)
-            curr_min = min(self.currents)
-            curr_max = max(self.currents)
+            ax.set_xlim(0.0, current_elapsed + self.time_step)
+            curr_min, curr_max = min(self.currents), max(self.currents)
             if curr_min == curr_max:
                 curr_min -= 0.001
                 curr_max += 0.001
-                ax.set_ylim(curr_min, curr_max)
-            else:
-                ax.set_ylim(
-                    min(self.currents) - (max(self.currents)-min(self.currents))/4,
-                    max(self.currents) + (max(self.currents)-min(self.currents))/4
-                    )
-            lines.set_data(current_time_list, self.currents)
+            ax.set_ylim(curr_min - (curr_max - curr_min) / 4,
+                        curr_max + (curr_max - curr_min) / 4)
+            lines.set_data(time_list, self.currents)
 
             plt.draw()
             plt.pause(0.1)
@@ -559,15 +561,16 @@ class Sweeper:
             pbar.update(1)
 
             with open(f"{self.filename}.txt", 'a') as file:
-                file.write(f"{self.current_time:>24.2f}{current:>24.16f} \n")
+                file.write(f"{current_elapsed:>24.2f} {current:>24.16f} \n")
             
             # Wait until the next time step
-            while time.time() - initial_time < current_time_list[-1] + time_step:
+            while time.time() - initial_time < time_list[-1] + time_step:
                 time.sleep(time_step / 100)
             
-            if self.current_time >= total_time:
+            if current_elapsed >= total_time:
                 pbar.close()
                 break
 
         plt.savefig(f"{self.filename}.png", dpi=300)
         print("[INFO] Data collection complete and figure saved. \n")
+        self._log_params(sweep_type='time', status='end')
