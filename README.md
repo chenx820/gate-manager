@@ -88,7 +88,7 @@ Contributions are welcome! Whether you find a bug, have a feature request, or wa
 3. **Make Changes:** Update the code, add tests, and ensure all tests pass.
 4. **Open a Pull Request:** Submit your PR, describing your changes and why they’re needed.
 
-Please folow PEP 8 style guidelines and ensure that all existing tests pass before submitting a pull request.
+Please folow [PEP 8 style guidelines](https://peps.python.org/pep-0008/) and ensure that all existing tests pass before submitting a pull request.
 
 ## License
 
