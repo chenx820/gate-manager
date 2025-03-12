@@ -17,6 +17,7 @@ Chen Huang <chen.huang23@imperial.ac.uk>
 """
 
 from datetime import datetime, date
+import math
 import time
 import os
 import matplotlib.pyplot as plt
@@ -36,7 +37,7 @@ class Sweeper:
     def __init__(self, 
                  outputs: GatesGroup = None, 
                  inputs: GatesGroup = None, 
-                 amplification: float = None, 
+                 amplification: float = (-1) * 1e7, 
                  temperature: str = None, 
                  device: str = None) -> None:
         self.outputs = outputs
@@ -95,6 +96,62 @@ class Sweeper:
         voltage, unit = voltage_pack
         unit_map = {'V': 1e0, 'mV': 1e-3, 'uV': 1e-6, 'nV': 1e-9}
         return voltage * unit_map.get(unit, 1)
+    
+    def convert_si_value(self, value, unit):
+        """
+        Convert a given numerical value and its unit to an appropriate SI prefixed representation,
+        so that the resulting number falls within the range [1, 1000) (or is 0).
+        
+        Args:
+            value (float or int): The numerical value 
+            unit (str): Unit string, e.g., "V", "mV", "kV", etc. (assuming the prefix is a single character)
+        
+        Returns:
+            str e.g., 100.000 [mV]
+        """
+        # Define multipliers corresponding to SI prefixes (includes common prefixes)
+        prefixes = {
+        'Y': 1e24, 'Z': 1e21, 'E': 1e18, 'P': 1e15, 'T': 1e12,
+        'G': 1e9, 'M': 1e6, 'k': 1e3, '': 1, 'm': 1e-3, 'μ': 1e-6, 'u': 1e-6,
+        'n': 1e-9, 'p': 1e-12, 'f': 1e-15, 'a': 1e-18, 'z': 1e-21, 'y': 1e-24
+        }
+        # Try to extract the prefix from the unit (assuming the prefix is a single character
+        # followed by the base unit)
+        if len(unit) > 1 and unit[0] in prefixes and unit[1].isalpha():
+            prefix = unit[0]
+            base_unit = unit[1:]
+        else:
+            prefix = ''
+            base_unit = unit
+            
+        # Convert the input value to the value in the base unit
+        base_value = value * prefixes[prefix]
+        
+        # Define mapping from exponent (in multiples of 3) to SI prefixes
+        si_prefixes = {
+            -24: 'y', -21: 'z', -18: 'a', -15: 'f', -12: 'p',
+            -9: 'n', -6: 'u', -3: 'm', 0: '', 3: 'k',
+            6: 'M', 9: 'G', 12: 'T', 15: 'P', 18: 'E',
+            21: 'Z', 24: 'Y'
+            }
+        
+        # If the value is 0, return immediately
+        if base_value == 0:
+            return f"{0:>7.3f} [{base_unit}]"
+        
+        # Calculate the order of magnitude of the base value
+        exponent = int(math.floor(math.log10(abs(base_value))))
+        # Round down the exponent to the nearest multiple of 3
+        exponent3 = (exponent // 3) * 3
+        # Ensure exponent3 is within the available range of si_prefixes
+        min_exp = min(si_prefixes.keys())
+        max_exp = max(si_prefixes.keys())
+        exponent3 = max(min_exp, min(max_exp, exponent3))
+        
+        # Calculate the converted value and corresponding SI prefixed unit
+        new_value = base_value / (10**exponent3)
+        new_unit = si_prefixes[exponent3] + base_unit
+        return f"{new_value:>7.3f} [{new_unit}]"
 
     def _set_gates_group_label(self, gates_group: GatesGroup) -> str:
         """Generate a label by combining the labels from all lines in a group of gates."""
@@ -143,43 +200,46 @@ class Sweeper:
             with open(f"{self.log_filename}.txt", 'a') as file:
                 self.start_time = datetime.now()
                 file.write(
-                    f"---- Run started at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')} ----\n")
-                file.write(f"{'Filename: ':<16} {self.filename}.txt \n")
-                file.write(f"{'Device: ':<16} {self.device} \n")
-                file.write(f"{'Voltage Unit: ':<16} {self.voltage_unit} \n")
-                file.write(f"{'Current Unit: ':<16} {self.current_unit} \n")
-                file.write(f"{'Measured Input: ':<16} {self.z_label} \n")
+                    f"--------/// Run started at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')} ///--------\n")
+                file.write(f"{'Filename:':<16} {self.filename}.txt \n")
+                file.write(f"{'Device:':<16} {self.device} \n")
+                file.write(f"{'Measured Input:':<16} {self.z_label} \n")
                 file.write("\n")
-                file.write(f"{'X Swept Gates: ':<16} {self.x_label} \n")
+                file.write(f"{'X Swept Gates:':<16} {self.x_label} \n")
                 if sweep_type == 'voltage':
-                    file.write(f"{'Start Voltage: ':<16} {self.X_start_voltage * self.voltage_scale:>24.8f} [{self.voltage_unit}] \n")
-                    file.write(f"{'End Voltage: ':<16} {self.X_end_voltage * self.voltage_scale:>24.8f} [{self.voltage_unit}] \n")
-                    file.write(f"{'Step Size: ':<16} {self.X_step * self.voltage_scale:24.8f} [{self.voltage_unit}] \n")
+                    file.write(f"{'Start Voltage:':<16} {self.convert_si_value(self.X_start_voltage, 'V')} \n")
+                    file.write(f"{'End Voltage:':<16} {self.convert_si_value(self.X_end_voltage, 'V')} \n")
+                    file.write(f"{'Step Size:':<16} {self.convert_si_value(self.X_step, 'V')} \n")
                     file.write("\n")
                 if self.is_2d_sweep:
-                    file.write(f"{'Y Swept Gates: ':<16} {self.y_label} \n")
-                    file.write(f"{'Start Voltage: ':<16} {self.Y_start_voltage * self.voltage_scale:>24.8f} [{self.voltage_unit}] \n")
-                    file.write(f"{'End Voltage: ':<16} {self.Y_end_voltage * self.voltage_scale:>24.8f} [{self.voltage_unit}] \n")
-                    file.write(f"{'Step Size: ':<16} {self.Y_step * self.voltage_scale:24.8f} [{self.voltage_unit}] \n")
+                    file.write(f"{'Y Swept Gates:':<16} {self.y_label} \n")
+                    file.write(f"{'Start Voltage:':<16} {self.convert_si_value(self.Y_start_voltage, 'V')} \n")
+                    file.write(f"{'End Voltage:':<16} {self.convert_si_value(self.Y_end_voltage, 'V')} \n")
+                    file.write(f"{'Step Size:':<16} {self.convert_si_value(self.Y_step, 'V')} \n")
                     file.write("\n")
                 if sweep_type == 'time':
-                    file.write(f"{'Total Time: ':<16} {self.total_time:>24.2f} [s] \n")
-                    file.write(f"{'Time Step: ':<16} {self.time_step:>24.2f} [s] \n")
+                    file.write(f"{'Total Time:':<16} {self.total_time:>16.2f} [s] \n")
+                    file.write(f"{'Time Step:':<16} {self.time_step:>16.2f} [s] \n")
                     file.write("\n")
                 file.write("Initial Voltages of all outputs before sweep: \n")
                 for output_gate in self.outputs.gates:
+                    voltage = output_gate.voltage()
                     file.write(
-                        f"{' & '.join(line.label for line in output_gate.lines):<60} {output_gate.voltage() * self.voltage_scale:>24.16f} [{self.voltage_unit}] {output_gate.source.label:>16} \n")
+                        f"{' & '.join(line.label for line in output_gate.lines):<55} {self.convert_si_value(voltage, 'V')} \n")
                 file.write("\n")
         if status == 'end':
             total_time_elapsed = datetime.now() - self.start_time
             hours, remainder = divmod(total_time_elapsed.total_seconds(), 3600)
             minutes, seconds = divmod(remainder, 60)
             with open(f"{self.log_filename}.txt", 'a') as file:
-                file.write(f"Total Time: {int(hours)}h {int(minutes)}m {int(seconds)}s \n")
+                file.write(f"{'Total Time:':<16} {int(hours)}h {int(minutes)}m {int(seconds)}s \n")
                 file.write(
-                    f"---- Run ended at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ----\n")
+                    f"--------/// Run ended at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ///--------\n")
                 file.write("\n")
+                
+    def set_amplification(self, amplification: float) -> None:
+        """Set the amplification factor for current measurements."""
+        self.amplification = amplification
 
     def sweep1D(self, 
                 swept_outputs: GatesGroup, 
@@ -192,7 +252,9 @@ class Sweeper:
                 current_unit: str = 'uA',
                 comments: str = None, 
                 ax2=None, 
-                is_2d_sweep: bool = False):
+                is_2d_sweep: bool = False,
+                is_show: bool = True
+                ) -> tuple:
         """
         Perform a 1D voltage sweep and generate an animated plot.
 
@@ -263,7 +325,7 @@ class Sweeper:
             fig, self.ax2 = plt.subplots(1, 1, figsize=(12, 7))
         else:
             self.ax2.clear()
-            self.ax2.set_title(f"{self.y_label} Voltage: {self.Y_voltage * self.voltage_scale:.3f} [{self.voltage_unit}]")
+            self.ax2.set_title(f"{self.y_label}: {self.convert_si_value(self.Y_voltage, 'V')}")
         self.ax2.set_xlabel(f"{self.x_label} [{self.voltage_unit}]")
         self.ax2.set_ylabel(f"{self.z_label} [{self.current_unit}]")
         
@@ -274,7 +336,7 @@ class Sweeper:
 
         # Log sweep parameters (for non-2D sweeps)
         if not self.is_2d_sweep:
-            self._log_params(status='start')
+            self._log_params(sweep_type='voltage', status='start')
             with open(f"{self.filename}.txt", 'a') as file:
                 header = (f"{self.x_label} [{self.voltage_unit}]".rjust(16) + 
                           f"{self.z_label} [{self.current_unit}]".rjust(16))
@@ -341,9 +403,12 @@ class Sweeper:
             plt.ioff()
             plt.tight_layout()
             plt.savefig(f"{self.filename}.png", dpi=300, bbox_inches='tight')
-            plt.close()
+            if is_show:
+                plt.show()
+            else:
+                plt.close()
             print("[INFO] Data collection complete and figure saved. \n")
-            self._log_params(status='end')
+            self._log_params(sweep_type='voltage', status='end')
             
 
     def sweep2D(self, 
@@ -359,7 +424,8 @@ class Sweeper:
                 initial_state: list, 
                 voltage_unit: str = 'V',
                 current_unit: str = 'uA',
-                comments: str = None):
+                comments: str = None,
+                is_show: bool = True):
         """
         Perform a 2D voltage sweep over two axes by sweeping one set of outputs for each voltage
         setting of another set.
@@ -398,7 +464,7 @@ class Sweeper:
             'current_unit': current_unit,
             'comments': comments,
             'ax2': None,
-            'is_2d_sweep': self.is_2d_sweep
+            'is_2d_sweep': self.is_2d_sweep,
         }
         initial_state_basic = initial_state.copy()
         
@@ -487,7 +553,7 @@ class Sweeper:
         
         # Generate final 2D plot and save the figure
         viz = Visualizer()
-        viz.viz2D(f"{self.filename}.txt")
+        viz.viz2D(f"{self.filename}.txt", is_show=is_show)
         
     def sweepTime(self, 
                   measured_inputs: GatesGroup, 

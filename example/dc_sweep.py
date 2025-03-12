@@ -96,7 +96,8 @@ param = {
         ],
     'voltage_unit': 'mV',
     'current_unit': 'nA',
-    'comments': 'test'
+    'comments': 'test',
+    'is_show': True
     }
     
 sweeper.sweep1D(**param)
@@ -120,9 +121,10 @@ param = {
             [t_bar_12, 1, 'V'],
             [t_global, 0.8, 'V']
         ],
-        'voltage_unit': 'V',
+        'voltage_unit': 'mV',
         'current_unit': 'nA',
-        'comments': f'diamond'
+        'comments': 'diamond',
+        'is_show': True
         }
 sweeper.sweep2D(**params)
 

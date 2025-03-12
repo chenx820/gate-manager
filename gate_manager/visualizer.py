@@ -63,7 +63,7 @@ class Visualizer:
         self.z_matrix = self.df_pivot.values  # Z values in 2D array format
 
 
-    def viz2D(self, filename: str, z_min: float=None, z_max: float=None):
+    def viz2D(self, filename: str, z_min: float=None, z_max: float=None, is_show: bool=True):
         """
         Generates a 2D Coulomb Diamond plot from the given data file.
         """
@@ -132,6 +132,9 @@ class Visualizer:
         plt.tight_layout()
         plt.savefig(self.filename.replace('.txt', '.png'), dpi=300, bbox_inches='tight')
         print("[INFO]: 2D plot saved.")
+        if is_show:
+            plt.show()
+        
         
         
     
