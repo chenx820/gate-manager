@@ -105,6 +105,7 @@ class Visualizer:
         
         # Colorbar customization
         barticks = np.linspace(z_min, z_max, 5)  # Generate bar ticks
+        barticks = np.around(barticks, 4)        # Round to 4 decimal places
         barticks_labels = [str(label) for label in barticks]
         barticks_labels[0] = f"< {barticks[0]}"
         barticks_labels[-1] = f"> {barticks[-1]}"
@@ -126,8 +127,8 @@ class Visualizer:
         ax.set_ylabel(self.y_label, color='#2C3E50', fontsize=14)
         
         #Ticks
-        ax.tick_params(axis='y', direction='in', width=4, length=10 , pad=10 , right=True)
-        ax.tick_params(axis='x', direction='in', width=4, length=10 , pad=10 , top=False)
+        ax.tick_params(axis='y', direction='in', width=4, length=10 , pad=10 , right=True, labelsize=14)
+        ax.tick_params(axis='x', direction='in', width=4, length=10 , pad=10 , top=False, labelsize=14)
 
         plt.tight_layout()
         plt.savefig(self.filename.replace('.txt', '.png'), dpi=300, bbox_inches='tight')
