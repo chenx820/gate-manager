@@ -61,8 +61,8 @@ sweeper = Sweeper(outputs=outputs, inputs=inputs, temperature="CT", device="Quan
 
 # Prepare an initial state for the outputs
 initial_state = [
-    [output_gate_1, 0.0],
-    [output_gate_2, 0.0],
+    [output_gate_1, 0.0, 'V'],
+    [output_gate_2, 0.0, 'V'],
 ]
 
 # Perform a 1D sweep from 0 V to 1 V in steps of 10 mV
