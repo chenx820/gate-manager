@@ -50,7 +50,7 @@ class Visualizer:
         self.y_label, self.x_label, self.z_label = header
     
         # Read the rest of the file into a DataFrame
-        self.df = pd.read_csv(filename, sep=r'\s+', skiprows=1, names=["Y", "X", "Z"])  # Assign column names
+        self.df = pd.read_csv(f"data/{filename}", sep=r'\s+', skiprows=1, names=["Y", "X", "Z"])  # Assign column names
         
         z_offset = 0.1166 # Estimate for the center currents value from past experiments
         

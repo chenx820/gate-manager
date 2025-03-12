@@ -177,10 +177,10 @@ class Sweeper:
 
     def _get_unique_filename(self, base_filename: str) -> str:
         """Ensure unique filenames to prevent overwriting."""
-        filepath = os.path.join(os.getcwd(), base_filename)
+        filepath = os.path.join(os.getcwd(), f"data/{base_filename}")
 
         counter = 1
-        while os.path.isfile(f"data/{filepath}_run{counter}.txt"):
+        while os.path.isfile(f"{filepath}_run{counter}.txt"):
             counter += 1
         return f"{base_filename}_run{counter}"
             
