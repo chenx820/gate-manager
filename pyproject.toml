@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gate-manager"
-version = "2.3.9"
+version = "2.4.0"
 description = "A package for controlling and managing gate voltages in quantum devices."
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [

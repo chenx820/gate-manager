@@ -180,7 +180,7 @@ class Sweeper:
         filepath = os.path.join(os.getcwd(), base_filename)
 
         counter = 1
-        while os.path.isfile(f"{filepath}_run{counter}.txt"):
+        while os.path.isfile(f"data/{filepath}_run{counter}.txt"):
             counter += 1
         return f"{base_filename}_run{counter}"
             
@@ -337,7 +337,7 @@ class Sweeper:
         # Log sweep parameters (for non-2D sweeps)
         if not self.is_2d_sweep:
             self._log_params(sweep_type='voltage', status='start')
-            with open(f"{self.filename}.txt", 'a') as file:
+            with open(f"data/{self.filename}.txt", 'a') as file:
                 header = (f"{self.x_label} [{self.voltage_unit}]".rjust(16) + 
                           f"{self.z_label} [{self.current_unit}]".rjust(16))
                 file.write(header + "\n")
@@ -378,7 +378,7 @@ class Sweeper:
             frame += 1
             pbar.update(1)
 
-            with open(f"{self.filename}.txt", 'a') as file:
+            with open(f"data/{self.filename}.txt", 'a') as file:
                 if self.is_2d_sweep:
                     file.write(f"{self.Y_voltage * self.voltage_scale:>16.4f} " 
                                f"{self.X_voltage * self.voltage_scale:>16.4f} "
@@ -402,7 +402,7 @@ class Sweeper:
         else:
             plt.ioff()
             plt.tight_layout()
-            plt.savefig(f"{self.filename}.png", dpi=300, bbox_inches='tight')
+            plt.savefig(f"figures/{self.filename}.png", dpi=300, bbox_inches='tight')
             if is_show:
                 plt.show()
             else:
@@ -482,7 +482,7 @@ class Sweeper:
         self.comments = comments
         self._set_filename('2D')
         
-        with open(f"{self.filename}.txt", 'a') as file:
+        with open(f"data/{self.filename}.txt", 'a') as file:
             header = (f"{self.y_label} [{self.voltage_unit}]".rjust(16) +
                       f"{self.x_label} [{self.voltage_unit}]".rjust(16) +
                       f"{self.z_label} [{self.current_unit}]".rjust(16))
@@ -609,7 +609,7 @@ class Sweeper:
 
         # Log time sweep parameters
         self._log_params(sweep_type='time', status='start')
-        with open(f"{self.filename}.txt", 'a') as file:
+        with open(f"data/{self.filename}.txt", 'a') as file:
             header = f"{'time [s]':>24} {self.z_label + ' [uA]':>24}"
             file.write(header + "\n")
 
@@ -640,7 +640,7 @@ class Sweeper:
             frame += 1
             pbar.update(1)
 
-            with open(f"{self.filename}.txt", 'a') as file:
+            with open(f"data/{self.filename}.txt", 'a') as file:
                 file.write(f"{current_elapsed:>24.2f} {current:>24.16f} \n")
             
             # Wait until the next time step
@@ -651,6 +651,6 @@ class Sweeper:
                 pbar.close()
                 break
 
-        plt.savefig(f"{self.filename}.png", dpi=300)
+        plt.savefig(f"figures/{self.filename}.png", dpi=300)
         print("[INFO] Data collection complete and figure saved. \n")
         self._log_params(sweep_type='time', status='end')

@@ -30,7 +30,7 @@ class Visualizer:
 
     def read_2D_file(self, filename: str):
         # Read the first line to get header information
-        with open(filename, 'r') as f:
+        with open(f"data/{filename}", 'r') as f:
             header_line = f.readline().strip()
         
         # Split the header by whitespace
@@ -131,7 +131,7 @@ class Visualizer:
         ax.tick_params(axis='x', direction='in', width=4, length=10 , pad=10 , top=False, labelsize=14)
 
         plt.tight_layout()
-        plt.savefig(self.filename.replace('.txt', '.png'), dpi=300, bbox_inches='tight')
+        plt.savefig("figures/"+self.filename.replace('.txt', '.png'), dpi=300, bbox_inches='tight')
         print("[INFO]: 2D plot saved.")
         if is_show:
             plt.show()
