@@ -73,8 +73,7 @@ for i in range(8):
     nanonisInstance.UserOut_SlewRateSet(i+1, slew_rate)
 params = {
     'device': "Semiqon 36",
-    'temperature': "CT",
-    'amplification': (-1) * 10 ** 7, #-1 because of the inverting amplifier
+    'temperature': "CT"
     }
 sweeper = Sweeper(outputs, inputs, **params)
 
