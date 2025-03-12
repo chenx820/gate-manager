@@ -92,4 +92,4 @@ Please folow PEP 8 style guidelines and ensure that all existing tests pass befo
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the ![MIT License](https://github.com/chenx820/gate-manager/blob/main/LICENSE).
