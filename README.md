@@ -65,35 +65,19 @@ initial_state = [
     (output_gate_2, 0.0),
 ]
 
-# Perform a 1D sweep from 0 V to 1 V in steps of 0.1 V
+# Perform a 1D sweep from 0 V to 1 V in steps of 10 mV
 sweeper.sweep1D(
     swept_outputs=outputs,
     measured_inputs=inputs,
-    start_voltage=0.0,
-    end_voltage=1.0,
-    step=0.1,
+    start_voltage=[0.0, 'V'],
+    end_voltage=[1.0, 'V'],
+    step=[10, 'mV'],
     initial_state=initial_state,
     comments="MyFirstSweep"
 )
 ```
 
 Check out the `example/` folder to see more advanced usage.
-
-## Testing
-
-We use pytest for unit tests. After cloning the repository and installing dependencies:
-
-```bash
-cd gate-manager
-pytest
-```
-
-This will run all tests in the `tests/` folder (e.g., `test_gate.py`, `test_sweep.py`, etc.). If you want to see a coverage report, install pytest-cov:
-
-```bash
-pip install pytest-cov
-pytest --cov=gate_manager --cov-report=term-missing
-```
 
 ## Contributing
 

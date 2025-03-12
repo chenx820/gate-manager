@@ -14,6 +14,14 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
+# Define the folder names to check
+folders = ['figures', 'data']
+
+# Check if each folder exists and create it if it doesn't
+for folder in folders:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
 # Create a socket connection to Nanonis
 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connection.connect(("192.168.236.1", 6501))
@@ -76,16 +84,18 @@ sweeper = Sweeper(outputs, inputs, **params)
 param = {
     'swept_outputs': GatesGroup([t_P1]),
     'measured_inputs': GatesGroup([t_D]),
-    'start_voltage': -0.6,
-    'end_voltage': 0,
-    'step': 0.5 * 1e-3,
+    'start_voltage': [-0.6, 'V'],
+    'end_voltage': [0, 'V'],
+    'step': [0.5, 'mV'],
     'initial_state': [
-        [t_b_s, 0.4 * 1e-3],
-        [res_S_D, 2],
-        [t_bar_S1, 1.0],
-        [t_bar_12, 1.0],
-        [t_global, 0.8]
+        [t_b_s, 0.4, 'mV'],
+        [res_S_D, 2, 'V'],
+        [t_bar_S1, 1.0, 'V'],
+        [t_bar_12, 1.0, 'V'],
+        [t_global, 0.8, 'V']
         ],
+    'voltage_unit': 'mV',
+    'current_unit': 'nA',
     'comments': 'test'
     }
     
@@ -96,19 +106,19 @@ sweeper.sweep1D(**param)
 
 param = {
         'X_swept_outputs': GatesGroup([t_P1]),
-        'X_start_voltage': -0.3,
-        'X_end_voltage': 0.3,
-        'X_step': 2 * 1e-3,
+        'X_start_voltage': [-0.3, 'V'],
+        'X_end_voltage': [0.3, 'V'],
+        'X_step': [2, 'mV'],
         'Y_swept_outputs': GatesGroup([res_S_D]),
-        'Y_start_voltage': 0.1,
-        'Y_end_voltage': 1.0,
-        'Y_step': 0.1,
+        'Y_start_voltage': [0.5, 'V'],
+        'Y_end_voltage': [1.2, 'V'],
+        'Y_step': [10, 'mV'],
         'measured_inputs': GatesGroup([t_D]),
         'initial_state': [
-            [t_b_s, 0.4 * 1e-3], 
-            [t_bar_S1, 1],
-            [t_bar_12, 1],
-            [t_global, 0.8]
+            [t_b_s, 0.4, 'mV'], 
+            [t_bar_S1, 1, 'V'],
+            [t_bar_12, 1, 'V'],
+            [t_global, 0.8, 'V']
         ],
         'voltage_unit': 'V',
         'current_unit': 'nA',

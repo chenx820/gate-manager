@@ -107,7 +107,7 @@ class Gate:
         Args:
             is_wait (bool): If True, waits until the voltage reaches zero.
         """
-        self.voltage(0.0, is_wait)
+        self.X_voltage(0.0, is_wait)
 
     def is_at_target_voltage(self, target_voltage: float, tolerance: float = 1e-6) -> bool:
         """
@@ -180,4 +180,4 @@ class GatesGroup:
         Args:
             is_wait (bool): If True, waits until all gates reach zero voltage.
         """
-        self.voltage(0.0, is_wait)
+        self.X_voltage(0.0, is_wait)
