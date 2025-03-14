@@ -37,12 +37,10 @@ class Sweeper:
     def __init__(self, 
                  outputs: GatesGroup = None, 
                  inputs: GatesGroup = None, 
-                 amplification: float = (-1) * 1e7, 
                  temperature: str = None, 
                  device: str = None) -> None:
         self.outputs = outputs
         self.inputs = inputs
-        self.amplification = amplification
         self.temperature = temperature
         self.device = device
 
@@ -78,6 +76,22 @@ class Sweeper:
         self.current_unit = 'uA'
         self.voltage_scale = 1
         self.current_scale = 1
+        
+        self.init_folders()
+        
+    def init_folders(self) -> None:
+        """Create folders for saving data and figures."""
+        # Choose the currents folder
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(current_dir)
+
+        # Define the folder names to check
+        folders = ['figures', 'data']
+
+        # Check if each folder exists and create it if it doesn't
+        for folder in folders:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
         
     def _set_units(self) -> None:
         """Set voltage and current units."""
@@ -236,10 +250,6 @@ class Sweeper:
                 file.write(
                     f"--------/// Run ended at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ///--------\n")
                 file.write("\n")
-                
-    def set_amplification(self, amplification: float) -> None:
-        """Set the amplification factor for current measurements."""
-        self.amplification = amplification
 
     def sweep1D(self, 
                 swept_outputs: GatesGroup, 
@@ -356,7 +366,7 @@ class Sweeper:
             self.X_voltages.append(self.X_voltage * self.voltage_scale)
             
             # Read current from the first measured input (extend as needed)
-            current = measured_inputs.gates[0].read_current(self.amplification) * self.current_scale
+            current = measured_inputs.gates[0].read_current() * self.current_scale
             self.currents.append(current)
             
             # Update plot limits and data
@@ -623,7 +633,7 @@ class Sweeper:
         while True:
             current_elapsed = time.time() - initial_time
             time_list.append(current_elapsed)
-            current = measured_inputs.gates[0].read_current(self.amplification)
+            current = measured_inputs.gates[0].read_current()
             self.currents.append(current)
             
             ax.set_xlim(0.0, current_elapsed + self.time_step)

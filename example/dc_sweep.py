@@ -10,18 +10,6 @@ import socket
 import os
 
 
-# Choose the currents folder
-current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
-
-# Define the folder names to check
-folders = ['figures', 'data']
-
-# Check if each folder exists and create it if it doesn't
-for folder in folders:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
 # Create a socket connection to Nanonis
 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connection.connect(("192.168.236.1", 6501))
@@ -54,8 +42,8 @@ fingers = GatesGroup([t_P1, t_bar_S1, t_bar_12, t_global])
 
 # %% Define input gates for reading currents measurements
 
-t_D = Gate(source=nanonis_i[1], lines=[lines[1]])
-b_D = Gate(source=nanonis_i[2], lines=[lines[23]])
+t_D = Gate(source=nanonis_i[1], lines=[lines[1]], amplification=-1e8)
+b_D = Gate(source=nanonis_i[2], lines=[lines[23]], amplification=-1e7)
 SD3 = Gate(source=nanonis_i[3])
 SD4 = Gate(source=nanonis_i[4])
 SD5 = Gate(source=nanonis_i[5])

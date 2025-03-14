@@ -25,9 +25,10 @@ class Gate:
     A class representing a gate used in experiments interfacing with the Nanonis system.
     """
 
-    def __init__(self, source: NanonisSource = None, lines: list[SemiqonLine] = None):
+    def __init__(self, source: NanonisSource = None, lines: list[SemiqonLine] = None, amplification: float = 1.0):
         self.source = source
         self.lines = lines
+        self.amplification = amplification
         if self.lines is not None:
             self.label = "&".join(line.label for line in self.lines)
         self.nanonisInstance = self.source.nanonisInstance
@@ -107,7 +108,7 @@ class Gate:
         Args:
             is_wait (bool): If True, waits until the voltage reaches zero.
         """
-        self.X_voltage(0.0, is_wait)
+        self.voltage(0.0, is_wait)
 
     def is_at_target_voltage(self, target_voltage: float, tolerance: float = 1e-6) -> bool:
         """
@@ -123,17 +124,14 @@ class Gate:
         self.get_volt()
         return abs(self._voltage - target_voltage) < tolerance
 
-    def read_current(self, amplification: float = -10 ** 6) -> float:
+    def read_current(self) -> float:
         """
-        Reads the currents from the gate, adjusted by the amplifier setting.
-
-        Args:
-            amplification (float): The amplification factor to adjust the currents reading.
+        Reads the currents from the gate
 
         Returns:
             float: The adjusted currents.
         """
-        return self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0] * 10 ** (6) / amplification
+        return self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0] * 10 ** (6) / self.amplification
 
 
 class GatesGroup:
@@ -180,4 +178,4 @@ class GatesGroup:
         Args:
             is_wait (bool): If True, waits until all gates reach zero voltage.
         """
-        self.X_voltage(0.0, is_wait)
+        self.voltage(0.0, is_wait)
