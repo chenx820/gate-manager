@@ -77,22 +77,6 @@ class Sweeper:
         self.voltage_scale = 1
         self.current_scale = 1
         
-        self.init_folders()
-        
-    def init_folders(self) -> None:
-        """Create folders for saving data and figures."""
-        # Choose the currents folder
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(current_dir)
-
-        # Define the folder names to check
-        folders = ['figures', 'data']
-
-        # Check if each folder exists and create it if it doesn't
-        for folder in folders:
-            if not os.path.exists(folder):
-                os.makedirs(folder)
-        
     def _set_units(self) -> None:
         """Set voltage and current units."""
         unit_map = {'V': 1, 'mV': 1e3, 'uV': 1e6}
