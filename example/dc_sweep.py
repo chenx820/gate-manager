@@ -9,6 +9,16 @@ from gate_manager.sweeper import Sweeper
 import socket
 import os
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_dir)
+
+# Define the folder names to check
+folders = ['figures', 'data']
+
+# Check if each folder exists and create it if it doesn't
+for folder in folders:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 # Create a socket connection to Nanonis
 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

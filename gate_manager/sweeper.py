@@ -166,7 +166,7 @@ class Sweeper:
         elif prefix == '2D':
             base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]_[{self.y_label}]"
         elif prefix == 'time':
-            base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.y_label}]_vs_time"
+            base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_time"
         else:
             raise ValueError("Invalid prefix for filename.")
         if self.comments:
@@ -219,12 +219,13 @@ class Sweeper:
                     file.write(f"{'Total Time:':<16} {self.total_time:>16.2f} [s] \n")
                     file.write(f"{'Time Step:':<16} {self.time_step:>16.2f} [s] \n")
                     file.write("\n")
-                file.write("Initial Voltages of all outputs before sweep: \n")
-                for output_gate in self.outputs.gates:
-                    voltage = output_gate.voltage()
-                    file.write(
-                        f"{' & '.join(line.label for line in output_gate.lines):<55} {self.convert_si_value(voltage, 'V')} \n")
-                file.write("\n")
+                if not self.is_2d_sweep:
+                    file.write("Initial Voltages of all outputs before sweep: \n")
+                    for output_gate in self.outputs.gates:
+                        voltage = output_gate.voltage()
+                        file.write(
+                            f"{' & '.join(line.label for line in output_gate.lines):<55} {self.convert_si_value(voltage, 'V')} \n")
+                    file.write("\n")
         if status == 'end':
             total_time_elapsed = datetime.now() - self.start_time
             hours, remainder = divmod(total_time_elapsed.total_seconds(), 3600)
@@ -328,9 +329,9 @@ class Sweeper:
         self.X_voltage = self.X_start_voltage
         self.X_voltages = []
 
-        # Log sweep parameters (for non-2D sweeps)
+        # Log sweep parameters
+        self._log_params(sweep_type='voltage', status='start')
         if not self.is_2d_sweep:
-            self._log_params(sweep_type='voltage', status='start')
             with open(f"data/{self.filename}.txt", 'a') as file:
                 header = (f"{self.x_label} [{self.voltage_unit}]".rjust(16) + 
                           f"{self.z_label} [{self.current_unit}]".rjust(16))
@@ -554,7 +555,10 @@ class Sweeper:
                   total_time: float,
                   time_step: float, 
                   initial_state: list, 
-                  comments: str = None) -> None:
+                  current_unit: str = 'uA',
+                  comments: str = None,
+                  is_show: bool = True
+                  ) -> None:
         """
         Perform a time-based sweep by recording current measurements over a specified duration.
 
@@ -567,11 +571,14 @@ class Sweeper:
         """
         self.x_label = 'time'
         self.z_label = self._set_gates_group_label(measured_inputs)
+        self.current_unit = current_unit
         self.comments = comments
+        
+        self._set_units()
         self._set_filename('time')
 
         self.total_time = total_time
-        self.time_step = time_step
+        self.time_step = time_step    
 
         pbar = tqdm(total=len(self.outputs.gates), desc="[INFO] Ramping voltage", ncols=80,
                     leave=True)
@@ -582,11 +589,14 @@ class Sweeper:
         pbar.update(len(idle_gates))
 
         # Set initial state for designated gates
-        for gate, init_voltage in initial_state:
-            gate.voltage(init_voltage, False)
+        converted_init_state = []
+        for gate, init_volt, init_unit in initial_state:
+            converted_init_volt = self._convert_units([init_volt, init_unit])
+            converted_init_state.append([gate, converted_init_volt])
+            gate.voltage(converted_init_volt, is_wait=False)
 
-        # Wait for initial voltages to stabilize
-        while not all([gate.is_at_target_voltage(voltage) for gate, voltage in initial_state]):
+        # Wait until all initial voltages stabilize
+        while not all([gate.is_at_target_voltage(voltage) for gate, voltage in converted_init_state]):
             time.sleep(0.1)
         pbar.update(len(initial_state))
         pbar.close()
@@ -596,17 +606,20 @@ class Sweeper:
         fig, ax = plt.subplots(figsize=(12, 7))
         lines, = ax.plot([], [])
         ax.set_xlabel(f"{self.x_label} [s]")
-        ax.set_ylabel(f"{self.z_label} [uA]")
+        ax.set_ylabel(f"{self.z_label} [{self.current_unit}]")
 
         self.times = []
         self.currents = []
 
         # Log time sweep parameters
         self._log_params(sweep_type='time', status='start')
-        with open(f"data/{self.filename}.txt", 'a') as file:
-            header = f"{'time [s]':>24} {self.z_label + ' [uA]':>24}"
-            file.write(header + "\n")
 
+        if not self.is_2d_sweep:
+            with open(f"data/{self.filename}.txt", 'a') as file:
+                header = (f"{self.x_label} [s]".rjust(16) + 
+                          f"{self.z_label} [{self.current_unit}]".rjust(16))
+                file.write(header + "\n")
+                
         total_steps = int(self.total_time // self.time_step)
         pbar = tqdm(total=total_steps, desc="[INFO] Sweeping", ncols=80, leave=True)  # progress bar
         frame = 0
@@ -617,7 +630,7 @@ class Sweeper:
         while True:
             current_elapsed = time.time() - initial_time
             time_list.append(current_elapsed)
-            current = measured_inputs.gates[0].read_current()
+            current = measured_inputs.gates[0].read_current() * self.current_scale
             self.currents.append(current)
             
             ax.set_xlim(0.0, current_elapsed + self.time_step)
@@ -630,12 +643,12 @@ class Sweeper:
             lines.set_data(time_list, self.currents)
 
             plt.draw()
-            plt.pause(0.1)
+            plt.pause(0.01)
             frame += 1
             pbar.update(1)
 
             with open(f"data/{self.filename}.txt", 'a') as file:
-                file.write(f"{current_elapsed:>24.2f} {current:>24.16f} \n")
+                file.write(f"{current_elapsed:>16.2f} {current:>16.8f} \n")
             
             # Wait until the next time step
             while time.time() - initial_time < time_list[-1] + time_step:
@@ -648,3 +661,6 @@ class Sweeper:
         plt.savefig(f"figures/{self.filename}.png", dpi=300)
         print("[INFO] Data collection complete and figure saved. \n")
         self._log_params(sweep_type='time', status='end')
+        
+        if is_show:
+            plt.show()
