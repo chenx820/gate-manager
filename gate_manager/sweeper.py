@@ -283,6 +283,9 @@ class Sweeper:
         
         if not self.is_2d_sweep:
             self._set_filename('1D')
+            
+        # Initialize data log
+        self.data_log = []  
 
         self.X_start_voltage = self._convert_units(start_voltage)
         self.X_end_voltage = self._convert_units(end_voltage)
@@ -331,11 +334,11 @@ class Sweeper:
 
         # Log sweep parameters
         self._log_params(sweep_type='voltage', status='start')
-        if not self.is_2d_sweep:
-            with open(f"data/{self.filename}.txt", 'a') as file:
-                header = (f"{self.x_label} [{self.voltage_unit}]".rjust(16) + 
-                          f"{self.z_label} [{self.current_unit}]".rjust(16))
-                file.write(header + "\n")
+        #if not self.is_2d_sweep:
+        #    with open(f"data/{self.filename}.txt", 'a') as file:
+        #        header = (f"{self.x_label} [{self.voltage_unit}]".rjust(16) + 
+        #                  f"{self.z_label} [{self.current_unit}]".rjust(16))
+        #        file.write(header + "\n")
 
         print(
             f"[INFO] Start sweeping {self.x_label} from {self.X_start_voltage*self.voltage_scale} " 
@@ -373,14 +376,23 @@ class Sweeper:
             frame += 1
             pbar.update(1)
 
-            with open(f"data/{self.filename}.txt", 'a') as file:
-                if self.is_2d_sweep:
-                    file.write(f"{self.Y_voltage * self.voltage_scale:>16.4f} " 
-                               f"{self.X_voltage * self.voltage_scale:>16.4f} "
-                               f"{current:>16.8f} \n")
-                else: 
-                    file.write(f"{self.X_voltage * self.voltage_scale:>16.4f} "
-                               f"{current:>16.8f} \n")
+            #with open(f"data/{self.filename}.txt", 'a') as file:
+            #    if self.is_2d_sweep:
+            #        file.write(f"{self.Y_voltage * self.voltage_scale:>16.4f} " 
+            #                   f"{self.X_voltage * self.voltage_scale:>16.4f} "
+            #                   f"{current:>16.8f} \n")
+            #    else: 
+            #        file.write(f"{self.X_voltage * self.voltage_scale:>16.4f} "
+            #                   f"{current:>16.8f} \n")
+            
+            if self.is_2d_sweep:
+                # for 2D sweep, we need to record the data for each frame
+                self.data_log.append([self.Y_voltage * self.voltage_scale, 
+                                    self.X_voltage * self.voltage_scale, 
+                                    current])
+            else:
+                # for 1D sweep, we only need to record the data for each frame
+                self.data_log.append([self.X_voltage * self.voltage_scale, current])
                     
             # Check if sweep is complete    
             if (self.X_start_voltage < self.X_end_voltage and self.X_voltage > self.X_end_voltage - 1e-6) or (
@@ -391,6 +403,10 @@ class Sweeper:
                 if self.X_start_voltage < self.X_end_voltage \
                 else self.X_start_voltage - frame * self.X_step
         
+        if not self.is_2d_sweep:
+            np.save(f"data/{self.filename}.npy", np.array(self.data_log))
+    
+    
         if self.is_2d_sweep:
             print("\n")
             return self.X_voltages, self.currents
@@ -541,6 +557,7 @@ class Sweeper:
                 break
             self.Y_voltage = self.Y_start_voltage + idx * self.Y_step if self.Y_start_voltage < self.Y_end_voltage else self.Y_start_voltage - idx * self.Y_step
             
+        np.save(f"data/{self.filename}.npy", data)
         plt.ioff()
         print("[INFO] Data collection complete. ")
         plt.close('all')
@@ -578,7 +595,10 @@ class Sweeper:
         self._set_filename('time')
 
         self.total_time = total_time
-        self.time_step = time_step    
+        self.time_step = time_step   
+        
+        # Initialize data log
+        self.data_log = [] 
 
         pbar = tqdm(total=len(self.outputs.gates), desc="[INFO] Ramping voltage", ncols=80,
                     leave=True)
@@ -614,11 +634,11 @@ class Sweeper:
         # Log time sweep parameters
         self._log_params(sweep_type='time', status='start')
 
-        if not self.is_2d_sweep:
-            with open(f"data/{self.filename}.txt", 'a') as file:
-                header = (f"{self.x_label} [s]".rjust(16) + 
-                          f"{self.z_label} [{self.current_unit}]".rjust(16))
-                file.write(header + "\n")
+        #if not self.is_2d_sweep:
+        #    with open(f"data/{self.filename}.txt", 'a') as file:
+        #        header = (f"{self.x_label} [s]".rjust(16) + 
+        #                  f"{self.z_label} [{self.current_unit}]".rjust(16))
+        #        file.write(header + "\n")
                 
         total_steps = int(self.total_time // self.time_step)
         pbar = tqdm(total=total_steps, desc="[INFO] Sweeping", ncols=80, leave=True)  # progress bar
@@ -647,8 +667,7 @@ class Sweeper:
             frame += 1
             pbar.update(1)
 
-            with open(f"data/{self.filename}.txt", 'a') as file:
-                file.write(f"{current_elapsed:>16.2f} {current:>16.8f} \n")
+            self.data_log.append([current_elapsed, current])
             
             # Wait until the next time step
             while time.time() - initial_time < time_list[-1] + time_step:
@@ -657,7 +676,8 @@ class Sweeper:
             if current_elapsed >= total_time:
                 pbar.close()
                 break
-
+        
+        np.save(f"data/{self.filename}.npy", np.array(self.data_log))
         plt.savefig(f"figures/{self.filename}.png", dpi=300)
         print("[INFO] Data collection complete and figure saved. \n")
         self._log_params(sweep_type='time', status='end')
