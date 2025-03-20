@@ -8,7 +8,6 @@ It also allows the user to plot 1D slices of the data at a specific V_SD or V_G 
 Created on Wed Mar 03 15:04:20 2025
 @author:
 Chen Huang <chen.huang23@imperial.ac.uk>
-John Michniewicz <j.michniewicz23@imperial.ac.uk>
 """
 
 import pandas as pd
