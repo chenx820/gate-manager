@@ -1,26 +1,27 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "gate-manager"
-version = "2.6.4"
+version = "2.6.10"
 description = "A package for controlling and managing gate voltages in quantum devices."
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
   { name = "Chen Huang", email = "chen.huang23@imperial.ac.uk" }
 ]
-license = { file = "LICENSE" }
+license = "MIT"
 urls = { Homepage = "https://github.com/chenx820/gate-manager" }
 requires-python = ">=3.6"
 dependencies = [
     "nanonis_spm",
+    "matplotlib",
+    "numpy",
+    "tqdm"
 ]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3"
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
+[tool.hatch.build.targets.wheel]
+packages = ["gate_manager"]
