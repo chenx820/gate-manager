@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
+from conductorquantum import ConductorQuantum
 
 from .gate import GatesGroup, Gate
 
@@ -314,6 +315,50 @@ class Sweeper:
         elif unit_type == 'current' and unit not in current_units:
             raise ValueError(f"Invalid current unit. Must be one of {current_units}")
 
+    def _validate_model(self, model: str, sweep_type: str) -> None:
+        """Validate that the provided model is supported for the given sweep type.
+        
+        Args:
+            model (str): Name of the model to validate
+            sweep_type (str): Type of sweep ('1D', '2D', or 'time')
+            
+        Raises:
+            ValueError: If the model is not supported for the sweep type
+        """
+        if model is None:
+            return
+            
+        supported_models = {
+            '1D': {
+                'pinch-off-classifier',
+                'pinch-off-parameter-extractor',
+                'turn-on-classifier',
+                'turn-on-parameter-extractor',
+                'coulomb-blockade-classifier',
+                'coulomb-blockade-peak-detector'
+            },
+            '2D': {
+                'charge-stability-diagram-classifier',
+                'charge-stability-diagram-segmenter',
+                'triple-point-detector',
+                'honeycomb-pattern-detector'
+            },
+            'time': {
+                'noise-analyzer',
+                'drift-detector',
+                'stability-analyzer'
+            }
+        }
+        
+        if sweep_type not in supported_models:
+            raise ValueError(f"Invalid sweep type: {sweep_type}")
+            
+        if model not in supported_models[sweep_type]:
+            raise ValueError(
+                f"Model '{model}' is not supported for {sweep_type} sweeps. "
+                f"Supported models are: {sorted(supported_models[sweep_type])}"
+            )
+            
     def sweep1D(self, 
                 swept_outputs: GatesGroup, 
                 measured_inputs: GatesGroup, 
@@ -323,13 +368,47 @@ class Sweeper:
                 initial_state: list = [], 
                 voltage_unit: str = 'V',
                 current_unit: str = 'uA',
+                model: str = None,
                 comments: str = None, 
                 ax2=None, 
                 is_2d_sweep: bool = False,
                 is_show: bool = True
                 ) -> tuple:
-        """Perform a 1D voltage sweep and generate an animated plot."""
+        """
+        Perform a 1D voltage sweep and generate an animated plot.
+        
+        Args:
+            swept_outputs (GatesGroup): Gates to sweep
+            measured_inputs (GatesGroup): Gates to measure
+            start_voltage (list): Starting voltage as [value, unit]
+            end_voltage (list): Ending voltage as [value, unit]
+            step (list): Step size as [value, unit]
+            initial_state (list): Initial state of the gates
+            voltage_unit (str): Unit for voltage measurements
+            current_unit (str): Unit for current measurements
+            model (str): Model name for analysis. Supported models:
+                - 'pinch-off-classifier': Classifies pinch-off curves
+                - 'pinch-off-parameter-extractor': Extracts parameters from pinch-off curves
+                - 'turn-on-classifier': Classifies turn-on curves
+                - 'turn-on-parameter-extractor': Extracts parameters from turn-on curves
+                - 'coulomb-blockade-classifier': Classifies Coulomb blockade patterns
+                - 'coulomb-blockade-peak-detector': Detects peaks in Coulomb blockade measurements
+            comments (str): Comments for the run
+            ax2 (Axes): Axes for the plot
+            is_2d_sweep (bool): Whether to perform a 2D sweep
+            is_show (bool): Whether to show the plot after completion
+
+        Raises:
+            ValueError: If input parameters are invalid.
+
+        Returns:
+            tuple: Tuple containing the voltage and current arrays.
+            None: If the plot is not shown.
+        """
         try:
+            # Validate model if provided
+            self._validate_model(model, '1D')
+            
             # Validate inputs
             self._validate_voltage_params(start_voltage, end_voltage, step)
             self._validate_units(voltage_unit, 'voltage')
@@ -341,8 +420,10 @@ class Sweeper:
             self.voltage_unit = voltage_unit
             self.current_unit = current_unit
             self.comments = comments
+            self.model = model
             self.ax2 = ax2
             self.is_2d_sweep = is_2d_sweep
+            self.is_show = is_show
             
             self._set_units()
             
@@ -522,6 +603,7 @@ class Sweeper:
                 initial_state: list, 
                 voltage_unit: str = 'V',
                 current_unit: str = 'uA',
+                model: str = None,
                 comments: str = None,
                 is_show: bool = True):
         """
@@ -541,10 +623,18 @@ class Sweeper:
             initial_state (list): List of tuples (gate, init_voltage) where init_voltage is [value, unit].
             voltage_unit (str): Voltage unit for display.
             current_unit (str): Current unit for display.
+            model (str): Model name for analysis. Supported models:
+                - 'charge-stability-diagram-classifier': Classifies charge stability diagrams
+                - 'charge-stability-diagram-segmenter': Segments regions in charge stability diagrams
+                - 'triple-point-detector': Detects triple points in stability diagrams
+                - 'honeycomb-pattern-detector': Detects honeycomb patterns in stability diagrams
             comments (str): Additional comments for logging.
             is_show (bool): Whether to show the plot after completion.
         """
         try:
+            # Validate model if provided
+            self._validate_model(model, '2D')
+            
             # Validate inputs
             for params in [(X_start_voltage, X_end_voltage, X_step), 
                           (Y_start_voltage, Y_end_voltage, Y_step)]:
@@ -766,6 +856,7 @@ class Sweeper:
                   time_step: float, 
                   initial_state: list, 
                   current_unit: str = 'uA',
+                  model: str = None,
                   comments: str = None,
                   is_show: bool = True
                   ) -> None:
@@ -778,6 +869,10 @@ class Sweeper:
             time_step (float): Time interval between measurements in seconds.
             initial_state (list): List of tuples (gate, init_voltage) for initial state.
             current_unit (str): Unit for current measurements.
+            model (str): Model name for analysis. Supported models:
+                - 'noise-analyzer': Analyzes noise characteristics in time series data
+                - 'drift-detector': Detects and characterizes drift in measurements
+                - 'stability-analyzer': Analyzes stability of measurements over time
             comments (str): Additional comments for logging.
             is_show (bool): Whether to show the plot after completion.
             
@@ -785,6 +880,9 @@ class Sweeper:
             ValueError: If input parameters are invalid.
         """
         try:
+            # Validate model if provided
+            self._validate_model(model, 'time')
+            
             # Validate inputs
             if total_time <= 0:
                 raise ValueError("Total time must be positive")
