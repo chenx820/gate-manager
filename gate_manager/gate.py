@@ -99,7 +99,7 @@ class Gate:
             self.set_volt(target_voltage)
             if is_wait:
                 while not self.is_at_target_voltage(target_voltage):
-                    time.sleep(0.1)
+                    time.sleep(0.001)
 
     def turn_off(self, is_wait: bool = True):
         """
@@ -166,10 +166,8 @@ class GatesGroup:
         for gate in self.gates:
             gate.voltage(target_voltage, False)
         if is_wait:
-            # print(f"[INFO] Ramping {[gate.label for gate in self.gates]} to {target_voltage} [V]. ")
             while not all(gate.is_at_target_voltage(target_voltage) for gate in self.gates):
-                time.sleep(0.1)
-            # print(f"[INFO] {[gate.label for gate in self.gates]} is at {target_voltage} [V]. ")
+                time.sleep(0.001)
 
     def turn_off(self, is_wait: bool = True) -> None:
         """

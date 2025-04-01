@@ -73,7 +73,6 @@ sweeper.sweep1D(
     end_voltage=[1.0, 'V'],
     step=[10, 'mV'],
     initial_state=initial_state,
-    voltage_unit='mV',
     current_unit='nA',
     comments="MyFirstSweep",
     is_show=True

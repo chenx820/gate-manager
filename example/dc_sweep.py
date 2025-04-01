@@ -91,7 +91,6 @@ param = {
         [t_bar_12, 1.0, 'V'],
         [t_global, 0.8, 'V']
         ],
-    'voltage_unit': 'mV',
     'current_unit': 'nA',
     'comments': 'test',
     'is_show': True
@@ -118,7 +117,6 @@ param = {
             [t_bar_12, 1, 'V'],
             [t_global, 0.8, 'V']
         ],
-        'voltage_unit': 'mV',
         'current_unit': 'nA',
         'comments': 'diamond',
         'is_show': True
