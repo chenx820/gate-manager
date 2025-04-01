@@ -647,7 +647,7 @@ class Sweeper:
             # Perform 2D sweep
             logger.info(f"Starting 2D sweep with {Y_num} Y steps and {X_num} X steps per Y value")
             self.Y_volt = self.Y_start_volt
-            for idx in tqdm(total=Y_num, desc="Y-axis sweep progress", ncols=80):
+            for idx in tqdm(range(Y_num), desc="Y-axis sweep progress", ncols=80):
                 tmp_init_state = initial_state.copy()
                 for Y_gate in Y_swept_outputs.gates:
                     tmp_init_state.append([Y_gate, self.Y_volt, 'V'])
@@ -822,7 +822,7 @@ class Sweeper:
             logger.info(f"Starting time sweep for {total_time:.1f}s with {time_step:.3f}s steps")
             initial_time = time.time()
             
-            for i in tqdm(total=total_steps, desc="Recording measurements", ncols=80):
+            for i in tqdm(range(total_steps), desc="Recording measurements", ncols=80):
                 # Record time and current
                 current_time = time.time() - initial_time
                 time_points[i] = current_time
