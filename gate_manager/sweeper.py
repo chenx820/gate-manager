@@ -403,7 +403,7 @@ class Sweeper:
                     )
             
             # Perform sweep
-            for i in tqdm(range(total_steps), desc="Sweeping", ncols=80):
+            for i in tqdm(range(total_steps), desc="Sweeping", ncols=80, disable=is_2d_sweep):
                 self.X_volt = (
                     self.X_start_volt + i * self.X_step 
                         if self.X_start_volt < self.X_end_volt 
@@ -437,7 +437,8 @@ class Sweeper:
                            
     def _set_initial_state(self, initial_state, swept_outputs = None):
         """Set up initial state for the sweep."""
-        logger.info("Setting up initial state")
+        if not self.is_2d_sweep:
+            logger.info("Setting up initial state")
         # Set initial states
         converted_init_state = []
         for gate, init_volt, init_unit in initial_state:
@@ -647,13 +648,15 @@ class Sweeper:
             # Perform 2D sweep
             logger.info(f"Starting 2D sweep with {Y_num} Y steps and {X_num} X steps per Y value")
             self.Y_volt = self.Y_start_volt
-            for idx in tqdm(range(Y_num), desc="Y-axis sweep progress", ncols=80):
+
+            # Initialize a single progress bar for the entire 2D sweep
+            for i in tqdm(range(Y_num), desc="Sweeping", ncols=80):
                 tmp_init_state = initial_state.copy()
                 for Y_gate in Y_swept_outputs.gates:
                     tmp_init_state.append([Y_gate, self.Y_volt, 'V'])
                 params['initial_state'] = tmp_init_state
 
-                if idx // 2 == 0:
+                if i % 2 == 0:  # Use modulo instead of floor division for clarity
                     params['start_voltage'] = X_start_voltage
                     params['end_voltage'] = X_end_voltage
                 else:
@@ -662,18 +665,17 @@ class Sweeper:
 
                 # Perform 1D sweep
                 _, Z_values = self.sweep1D(**params)
-                self.data[idx] = Z_values
-                    
+                self.data[i] = Z_values
+
                 # Update plot
                 self._update_2d_plot()
-                    
-                # Calculate next Y voltage
-                if idx < Y_num - 1:
-                    self.Y_volt += self.Y_step if self.Y_start_volt < self.Y_end_volt else -self.Y_step
 
-            self._log_params_end()
+                # Calculate next Y voltage
+                if i < Y_num - 1:
+                    self.Y_volt += self.Y_step if self.Y_start_volt < self.Y_end_volt else -self.Y_step
             
             # Save and show plot
+            self._log_params_end()
             self._save_and_show_plot()
             logger.info("2D sweep completed successfully")
             
@@ -727,8 +729,10 @@ class Sweeper:
         self.img = self.ax.imshow(
             self.data, cmap=cm, aspect='auto', origin='lower',
             extent=[
-                self.X_start_volt, self.X_end_volt, 
-                self.Y_start_volt, self.Y_end_volt
+                self.X_start_volt * self.X_volt_scale, 
+                self.X_end_volt * self.X_volt_scale, 
+                self.Y_start_volt * self.Y_volt_scale, 
+                self.Y_end_volt * self.Y_volt_scale
                 ],
             interpolation='none'
             )
