@@ -460,7 +460,7 @@ class Sweeper:
                             for gate in swept_outputs.gates]):
                 time.sleep(0.001)
             
-    def _setup_1d_plot(self, data):
+    def _setup_1d_plot(self):
         """Set up the initial 1D plot."""
 
         # Set up figure and axes
@@ -616,20 +616,19 @@ class Sweeper:
             self.is_show = is_show
             self._set_filename('2D')
             
-            # Calculate array dimensions
-            X_num = int(round(abs(self.X_end_volt - self.X_start_volt) / self.X_step)) + 1
-            Y_num = int(round(abs(self.Y_end_volt - self.Y_start_volt) / self.Y_step)) + 1
-            
-            # Pre-allocate data array
-            data = np.full((Y_num, X_num), np.nan)
-            
             # Write header and start logging
             self._write_2d_data_header()
             self._log_params_start(sweep_type='voltage')
             
             # Set up plotting
+            # Calculate array dimensions
+            X_num = int(round(abs(self.X_end_volt - self.X_start_volt) / self.X_step)) + 1
+            Y_num = int(round(abs(self.Y_end_volt - self.Y_start_volt) / self.Y_step)) + 1
+                
+            # Pre-allocate data array
+            self.data = np.full((Y_num, X_num), np.nan)
             
-            self._setup_2d_plot(data)
+            self._setup_2d_plot()
             
             # Prepare 1D sweep parameters
             params = {
@@ -663,10 +662,10 @@ class Sweeper:
 
                 # Perform 1D sweep
                 _, Z_values = self.sweep1D(**params)
-                data[idx] = Z_values
+                self.data[idx] = Z_values
                     
                 # Update plot
-                self._update_2d_plot(data)
+                self._update_2d_plot()
                     
                 # Calculate next Y voltage
                 if idx < Y_num - 1:
@@ -694,8 +693,10 @@ class Sweeper:
             logger.error(f"Failed to write data header: {str(e)}")
             raise
             
-    def _setup_2d_plot(self, data):
+    def _setup_2d_plot(self):
         """Set up the initial 2D plot."""
+        
+        
         # Set up figure and axes
         plt.ion()
         plt.rc('legend', fontsize=22, framealpha=0.9)
@@ -724,7 +725,7 @@ class Sweeper:
         
         # Create image plot
         self.img = self.ax.imshow(
-            data, cmap=cm, aspect='auto', origin='lower',
+            self.data, cmap=cm, aspect='auto', origin='lower',
             extent=[
                 self.X_start_volt, self.X_end_volt, 
                 self.Y_start_volt, self.Y_end_volt
@@ -737,12 +738,12 @@ class Sweeper:
         self.cbar.ax.set_title(rf'         {self.z_label} [{self.curr_unit}]', fontsize=28, pad=10)
         self.cbar.ax.tick_params(direction='in', width=2, length=5, labelsize=12)
         
-    def _update_2d_plot(self, data):
+    def _update_2d_plot(self,):
         """Update the 2D plot with new data."""
-        self.img.set_data(data)
+        self.img.set_data(self.data)
         
         # Update colorbar limits
-        valid_data = data[np.isfinite(data)]
+        valid_data = self.data[np.isfinite(self.data)]
         if len(valid_data) > 0:
             clim_min = np.nanmin(valid_data)
             clim_max = np.nanmax(valid_data)
