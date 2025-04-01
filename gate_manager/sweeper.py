@@ -199,25 +199,25 @@ class Sweeper:
     def _set_filename(self, prefix: str) -> None:
         """Generate a unique filename for saving data."""
         if prefix == '1D':
-            base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]"
+            self.base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]"
         elif prefix == '2D':
-            base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]_[{self.y_label}]"
+            self.base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_[{self.x_label}]_[{self.y_label}]"
         elif prefix == 'time':
-            base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_time"
+            self.base_filename = f"{date.today().strftime('%Y%m%d')}_{self.temperature}_[{self.z_label}]_vs_time"
         else:
             raise ValueError("Invalid prefix for filename.")
         if self.comments:
-            base_filename += f"_{self.comments}"
-        self.filename = self._get_unique_filename(base_filename)
+            self.base_filename += f"_{self.comments}"
+        self.filename = self._get_unique_filename()
 
-    def _get_unique_filename(self, base_filename: str) -> str:
+    def _get_unique_filename(self) -> str:
         """Ensure unique filenames to prevent overwriting."""
-        filepath = os.path.join(os.getcwd(), f"data/{base_filename}")
+        filepath = os.path.join(os.getcwd(), f"data/{self.base_filename}")
 
         counter = 1
         while os.path.isfile(f"{filepath}_run{counter}.txt"):
             counter += 1
-        return f"{base_filename}_run{counter}"
+        return f"{self.base_filename}_run{counter}"
             
 
     def _log_params_start(self, sweep_type: str = 'voltage', status: str = 'start') -> None:
