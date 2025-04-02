@@ -80,7 +80,6 @@ class Sweeper:
             raise
 
         # Initialize other attributes
-        self.set_oversampling()
         self._initialize_attributes()
 
         logger.info("Sweeper initialized successfully")

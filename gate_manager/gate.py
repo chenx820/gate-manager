@@ -30,14 +30,10 @@ class Gate:
         source: NanonisSource = None,
         lines: list[SemiqonLine] = None,
         amplification: float = 1.0,
-        oversampling: int = 1,
-        acq_period: int = 5,
     ):
         self.source = source
         self.lines = lines
         self.amplification = amplification
-        self.oversampling = oversampling
-        self.acq_period = acq_period
         if self.lines is not None:
             self.label = "&".join(line.label for line in self.lines)
         self.nanonisInstance = self.source.nanonisInstance
@@ -67,29 +63,8 @@ class Gate:
         Args:
             slew_rate (float): The slew rate to set.
         """
-        self.nanonisInstance.UserOut_SlewRateSet(self.source.read_index, slew_rate)
+        self.nanonisInstance.UserOut_SlewRateSet(self.source.write_index, slew_rate)
         self.slew_rate = slew_rate
-
-    def set_oversampling(self, oversampling: int) -> None:
-        """
-        Sets the oversampling rate for the gate.
-
-        Args:
-            oversampling (int): The oversampling rate to set.
-        """
-        # self.nanonisInstance.UserOut_OversamplingSet(self.source.read_index, oversampling)
-        self.oversampling = oversampling
-        # self.nanonisInstance.UserOut_AcqPeriodSet(self.source.read_index, self.acq_period * self.oversampling)
-
-    def set_acq_period(self, acq_period: int) -> None:
-        """
-        Sets the acquisition period for the gate.
-
-        Args:
-            acq_period (int): The acquisition period to set.
-        """
-        # self.nanonisInstance.UserOut_AcqPeriodSet(self.source.read_index, acq_period)
-        self.acq_period = acq_period
 
     def set_volt(self, target_voltage: float) -> None:
         """
@@ -221,11 +196,8 @@ class GatesGroup:
             ):
                 time.sleep(0.001)
 
-    def turn_off(self, is_wait: bool = True) -> None:
+    def turn_off(self) -> None:
         """
         Turns off all gates in the group by setting their voltages to zero.
-
-        Args:
-            is_wait (bool): If True, waits until all gates reach zero voltage.
         """
-        self.voltage(0.0, is_wait)
+        self.voltage(0.0)
