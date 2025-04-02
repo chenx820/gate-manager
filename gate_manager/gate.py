@@ -25,10 +25,19 @@ class Gate:
     A class representing a gate used in experiments interfacing with the Nanonis system.
     """
 
-    def __init__(self, source: NanonisSource = None, lines: list[SemiqonLine] = None, amplification: float = 1.0):
+    def __init__(
+        self,
+        source: NanonisSource = None,
+        lines: list[SemiqonLine] = None,
+        amplification: float = 1.0,
+        oversampling: int = 1,
+        acq_period: int = 5,
+    ):
         self.source = source
         self.lines = lines
         self.amplification = amplification
+        self.oversampling = oversampling
+        self.acq_period = acq_period
         if self.lines is not None:
             self.label = "&".join(line.label for line in self.lines)
         self.nanonisInstance = self.source.nanonisInstance
@@ -48,7 +57,39 @@ class Gate:
         max_voltage = 2.5
         if target_voltage < min_voltage or target_voltage > max_voltage:
             raise ValueError(
-                f"{self.label} target voltage {target_voltage} is out of range {(min_voltage, max_voltage)}.")
+                f"{self.label} target voltage {target_voltage} is out of range {(min_voltage, max_voltage)}."
+            )
+
+    def set_slew_rate(self, slew_rate: float) -> None:
+        """
+        Sets the slew rate for the gate.
+
+        Args:
+            slew_rate (float): The slew rate to set.
+        """
+        self.nanonisInstance.UserOut_SlewRateSet(self.source.read_index, slew_rate)
+        self.slew_rate = slew_rate
+
+    def set_oversampling(self, oversampling: int) -> None:
+        """
+        Sets the oversampling rate for the gate.
+
+        Args:
+            oversampling (int): The oversampling rate to set.
+        """
+        # self.nanonisInstance.UserOut_OversamplingSet(self.source.read_index, oversampling)
+        self.oversampling = oversampling
+        # self.nanonisInstance.UserOut_AcqPeriodSet(self.source.read_index, self.acq_period * self.oversampling)
+
+    def set_acq_period(self, acq_period: int) -> None:
+        """
+        Sets the acquisition period for the gate.
+
+        Args:
+            acq_period (int): The acquisition period to set.
+        """
+        # self.nanonisInstance.UserOut_AcqPeriodSet(self.source.read_index, acq_period)
+        self.acq_period = acq_period
 
     def set_volt(self, target_voltage: float) -> None:
         """
@@ -63,7 +104,8 @@ class Gate:
         self.verify(target_voltage)
         if self.source.write_index is None:
             raise ValueError(
-                f"'{self.label}' cannot set voltage because write_index is not defined.")
+                f"'{self.label}' cannot set voltage because write_index is not defined."
+            )
         else:
             # Set voltage via Nanonis instance
             self.nanonisInstance.UserOut_ValSet(self.source.write_index, target_voltage)
@@ -75,7 +117,9 @@ class Gate:
         Returns:
             float: The current voltage.
         """
-        self._voltage = self.nanonisInstance.Signals_ValsGet([self.source.read_index], True)[2][1][0][0]
+        self._voltage = self.nanonisInstance.Signals_ValsGet(
+            [self.source.read_index], True
+        )[2][1][0][0]
         return self._voltage
 
     def voltage(self, target_voltage: float = None, is_wait: bool = True) -> float:
@@ -110,7 +154,9 @@ class Gate:
         """
         self.voltage(0.0, is_wait)
 
-    def is_at_target_voltage(self, target_voltage: float, tolerance: float = 1e-6) -> bool:
+    def is_at_target_voltage(
+        self, target_voltage: float, tolerance: float = 1e-6
+    ) -> bool:
         """
         Checks if the currents voltage is within a specified tolerance of the target voltage.
 
@@ -131,7 +177,11 @@ class Gate:
         Returns:
             float: The adjusted currents.
         """
-        return self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0] * 10 ** (6) / self.amplification
+        return (
+            self.nanonisInstance.Signals_ValGet(self.source.read_index, True)[2][0]
+            * 10 ** (6)
+            / self.amplification
+        )
 
 
 class GatesGroup:
@@ -166,7 +216,9 @@ class GatesGroup:
         for gate in self.gates:
             gate.voltage(target_voltage, False)
         if is_wait:
-            while not all(gate.is_at_target_voltage(target_voltage) for gate in self.gates):
+            while not all(
+                gate.is_at_target_voltage(target_voltage) for gate in self.gates
+            ):
                 time.sleep(0.001)
 
     def turn_off(self, is_wait: bool = True) -> None:
