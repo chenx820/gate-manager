@@ -97,6 +97,7 @@ class Sweeper:
         self.X_start_volt = None
         self.X_end_volt = None
         self.X_step = None
+        self.X_slew_rate = None
 
         self.Y_start_volt = None
         self.Y_end_volt = None
@@ -387,6 +388,7 @@ class Sweeper:
         start_voltage: list[float, str],
         end_voltage: list[float, str],
         step: list[float, str],
+        slew_rate: float = 1.0,
         initial_state: list = [],
         current_unit: str = "uA",
         comments: str = None,
@@ -438,6 +440,7 @@ class Sweeper:
             self.X_start_volt = self._convert_units(start_voltage)
             self.X_end_volt = self._convert_units(end_voltage)
             self.X_step = self._convert_units(step)
+            self.X_slew_rate = slew_rate
 
             # Pre-allocate data arrays for better performance
             total_steps = round(
@@ -467,7 +470,7 @@ class Sweeper:
 
             # Perform sweep
             for gate in swept_outputs.gates:
-                gate.set_slew_rate(1)  # Set slew rate to 1 V/s
+                gate.set_slew_rate(self.X_slew_rate)  # Set slew rate to 1 V/s
             for i in tqdm(
                 range(total_steps), desc="Sweeping", ncols=80, disable=is_2d_sweep
             ):
@@ -752,7 +755,6 @@ class Sweeper:
                 "current_unit": self.curr_unit,
                 "comments": comments,
                 "is_2d_sweep": True,
-                "is_show": False,
             }
 
             # Perform 2D sweep
@@ -777,7 +779,7 @@ class Sweeper:
 
                 # Perform 1D sweep
                 _, Z_values = self.sweep1D(**params)
-                self.data[i] = Z_values.reverse() if i % 2 == 1 else Z_values
+                self.data[i] = Z_values[::-1] if i % 2 == 1 else Z_values
 
                 # Update plot
                 self._update_2d_plot()
