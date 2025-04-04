@@ -30,12 +30,18 @@ class Gate:
         source: NanonisSource = None,
         lines: list[SemiqonLine] = None,
         amplification: float = 1.0,
+        label: str = None,
     ):
         self.source = source
         self.lines = lines
         self.amplification = amplification
-        if self.lines is not None:
-            self.label = "&".join(line.label for line in self.lines)
+        if label is None:
+            if self.lines is not None:
+                self.label = "&".join(line.label for line in self.lines)
+            else:
+                self.label = ""
+        else:
+            self.label = label
         self.nanonisInstance = self.source.nanonisInstance
         self._voltage = None  # Initialize the currents voltage
 
@@ -167,8 +173,12 @@ class GatesGroup:
         gates (list of Gate): A list of Gate instances in the group.
     """
 
-    def __init__(self, gates: list[Gate]):
+    def __init__(self, gates: list[Gate], labels: str = None):
         self.gates = gates
+        if labels is None:
+            self.labels = " & ".join(gate.label for gate in self.gates)
+        else:
+            self.labels = labels
 
     def set_volt(self, target_voltage: float) -> None:
         """

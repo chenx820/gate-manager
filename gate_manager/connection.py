@@ -57,7 +57,7 @@ class SemiqonLinesConnection:
             SemiqonLine(label="t_bar_12"),
             SemiqonLine(label="t_P1"),
             SemiqonLine(label="t_bar_S1"),
-            SemiqonLine(label="t_s"),
+            SemiqonLine(label="t_S"),
             SemiqonLine(label="res_S"),
             # bottom lines
             SemiqonLine(label="b_S"),
