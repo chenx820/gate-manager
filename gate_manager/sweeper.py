@@ -261,7 +261,7 @@ class Sweeper:
 
     def _log_params_start(self, sweep_type: str = "voltage") -> None:
         """Log initial parameters and setup information."""
-        log_path = f"logs/log_{self.filename}.txt"
+        log_path = f"logs/log_{self.base_filename}.txt"
         with open(log_path, "a") as f:
             self.start_time = datetime.now()
             f.write(f"--------/// Run started at {self.start_time} ///--------\n")
@@ -292,7 +292,7 @@ class Sweeper:
 
     def _log_params_end(self) -> None:
         """Log completion time and total duration."""
-        log_path = f"logs/log_{self.filename}.txt"
+        log_path = f"logs/log_{self.base_filename}.txt"
         with open(log_path, "a") as f:
             f.write(f"{'Total Time:':<16} {datetime.now() - self.start_time} \n")
             f.write(f"--------/// Run ended at {datetime.now()} ///--------\n\n")
