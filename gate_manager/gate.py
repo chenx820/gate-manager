@@ -14,10 +14,12 @@ Created on Tue Oct 22 16:08:06 2024
 @author: Chen Huang <chen.huang23@imperial.ac.uk>
 """
 
-from typing import Union
 import time
+import logging
 
 from .connection import SemiqonLine, NanonisSource
+
+logger = logging.getLogger(__name__)
 
 
 class Gate:
@@ -30,20 +32,25 @@ class Gate:
         source: NanonisSource = None,
         lines: list[SemiqonLine] = None,
         amplification: float = 1.0,
+        divider: float = 1.0,
+        slew_rate: float = 0.1,
         label: str = None,
     ):
         self.source = source
         self.lines = lines
         self.amplification = amplification
-        if label is None:
+        self.divider = divider
+
+        if label is not None:
+            self.label = label
+        else:
             if self.lines is not None:
                 self.label = "&".join(line.label for line in self.lines)
             else:
                 self.label = ""
-        else:
-            self.label = label
+                
         self.nanonisInstance = self.source.nanonisInstance
-        self._voltage = None  # Initialize the currents voltage
+        self._voltage = None  # Initialize the current voltage
 
     def verify(self, target_voltage) -> None:
         """
@@ -55,11 +62,18 @@ class Gate:
         Raises:
             ValueError: If the target voltage is out of the specified range.
         """
-        min_voltage = -2.5
-        max_voltage = 2.5
-        if target_voltage < min_voltage or target_voltage > max_voltage:
+        dev_min_voltage = -2.5
+        dev_max_voltage = 2.5
+        if target_voltage < dev_min_voltage or target_voltage > dev_max_voltage:
             raise ValueError(
-                f"{self.label} target voltage {target_voltage} is out of range {(min_voltage, max_voltage)}."
+                f"{self.label} target voltage {target_voltage} is out of range {(dev_min_voltage, dev_max_voltage)}."
+            )
+        
+        source_min_voltage = -10
+        source_max_voltage = 10
+        if target_voltage / self.divider < source_min_voltage or target_voltage / self.divider > source_max_voltage:
+            raise ValueError(
+                f"{self.label} target Nanonis voltage {target_voltage / self.divider} is out of range {(source_min_voltage, source_max_voltage)}."
             )
 
     def set_slew_rate(self, slew_rate: float) -> None:
@@ -82,14 +96,14 @@ class Gate:
         Raises:
             ValueError: If the gate is read-only (write_index is not defined).
         """
-        self.verify(target_voltage)
-        if self.source.write_index is None:
-            raise ValueError(
-                f"'{self.label}' cannot set voltage because write_index is not defined."
-            )
-        else:
-            # Set voltage via Nanonis instance
+        try:
+            self.verify(target_voltage)
+            if self.source.write_index is None:
+                raise ValueError(f"'{self.label}' cannot set voltage because write_index is not defined.")
             self.nanonisInstance.UserOut_ValSet(self.source.write_index, target_voltage)
+        except Exception as e:
+            logger.error(f"Failed to set voltage for gate {self.label}: {str(e)}")
+            raise
 
     def get_volt(self) -> float:
         """
@@ -103,37 +117,28 @@ class Gate:
         )[2][1][0][0]
         return self._voltage
 
-    def voltage(self, target_voltage: float = None, is_wait: bool = True) -> float:
+    def voltage(self, target_voltage: float, is_wait: bool = True):
         """
-        Gets or sets the voltage for the gate. If a target voltage is provided, it sets the voltage.
-        If no value is provided, it returns the currents voltage.
+        Sets the voltage for the gate. 
 
         Args:
-            target_voltage (float, optional): The voltage to set. If None, returns the currents voltage.
-            is_wait (bool): If True, waits until the voltage reaches the target.
-
-        Returns:
-            float: The target voltage.
+            target_voltage (float): The voltage to set.
+            is_wait (bool, optional): If True, waits until the voltage reaches the target.
         """
-        if target_voltage is None:
-            # If no target is given, just return the currents voltage
-            self.get_volt()
-            return self._voltage
-        else:
-            # Set voltage and optionally wait until reaching target
-            self.set_volt(target_voltage)
-            if is_wait:
-                while not self.is_at_target_voltage(target_voltage):
-                    time.sleep(0.001)
+        # Set voltage and optionally wait until reaching target
+        self.set_volt(target_voltage)
+        if is_wait:
+            while not self.is_at_target_voltage(target_voltage):
+                time.sleep(0.001)
 
-    def turn_off(self, is_wait: bool = True):
+    def turn_off(self):
         """
         Sets the gate voltage to zero.
 
         Args:
             is_wait (bool): If True, waits until the voltage reaches zero.
         """
-        self.voltage(0.0, is_wait)
+        self.voltage(0.0, is_wait = True)
 
     def is_at_target_voltage(
         self, target_voltage: float, tolerance: float = 1e-6
@@ -175,10 +180,10 @@ class GatesGroup:
 
     def __init__(self, gates: list[Gate], labels: str = None):
         self.gates = gates
-        if labels is None:
-            self.labels = " & ".join(gate.label for gate in self.gates)
-        else:
+        if labels is not None:
             self.labels = labels
+        else:
+            self.labels = " & ".join(gate.label for gate in self.gates)
 
     def set_volt(self, target_voltage: float) -> None:
         """

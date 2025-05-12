@@ -4,25 +4,30 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gate-manager"
-version = "2.7.17"
+version = "2.7.20"
 description = "A package for controlling and managing gate voltages in quantum devices."
-readme = { file = "README.md", content-type = "text/markdown" }
+readme = "README.md"
 authors = [
-  { name = "Chen Huang", email = "chen.huang23@imperial.ac.uk" }
+    {name = "Chen Huang", email = "chen.huang23@imperial.ac.uk"}
 ]
-license = "MIT"
-urls = { Homepage = "https://github.com/chenx820/gate-manager" }
+license = {text = "MIT"}
 requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "nanonis_spm",
     "matplotlib",
     "numpy",
     "tqdm",
-    "conductorquantum"
+    "conductorquantum",
 ]
-classifiers = [
-    "Programming Language :: Python :: 3"
-]
+
+[project.urls]
+Homepage = "https://github.com/chenx820/gate-manager"
+Repository = "https://github.com/chenx820/gate-manager.git"
 
 [tool.hatch.build.targets.wheel]
 packages = ["gate_manager"]

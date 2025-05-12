@@ -84,7 +84,7 @@ class Sweeper:
 
         logger.info("Sweeper initialized successfully")
 
-    def _initialize_attributes(self):
+    def _initialize_attributes(self) -> None:
         """Initialize class attributes with default values."""
         # Labels and file metadata
         self.x_label = None
@@ -179,7 +179,7 @@ class Sweeper:
         base_units = {"V", "A"}
 
         # Split prefix and base unit
-        if len(unit) > 1 and unit[0] in ["m", "μ", "n", "p", "k", "M", "G", "T"]:
+        if len(unit) > 1 and unit[0] in ["m", "μ", "u", "n", "p", "k", "M", "G", "T"]:
             prefix = unit[0]
             base_unit = unit[1:]
             if base_unit not in base_units:
@@ -287,8 +287,9 @@ class Sweeper:
 
             f.write("Initial Voltages of all outputs before sweep: \n")
             for gate in self.outputs.gates:
-                voltage = gate.voltage()
-                f.write(f"{gate.label:<55} {self.convert_value(voltage)} \n\n")
+                voltage = gate.get_volt()
+                f.write(f"{gate.label:<55} {self.convert_value(voltage)} \n")
+            f.write("\n")
 
     def _log_params_end(self) -> None:
         """Log completion time and total duration."""
@@ -323,6 +324,15 @@ class Sweeper:
             raise ValueError(f"Invalid voltage unit. Must be one of {voltage_units}")
         elif unit_type == "current" and unit not in current_units:
             raise ValueError(f"Invalid current unit. Must be one of {current_units}")
+
+    def _write_to_file(self, filepath, content):
+        """Helper method to write content to a file."""
+        try:
+            with open(filepath, "a") as file:
+                file.write(content)
+        except IOError as e:
+            logger.error(f"Failed to write to file {filepath}: {str(e)}")
+            raise
 
     def sweep1D(
         self,
@@ -565,18 +575,15 @@ class Sweeper:
     def _write_measurement_data(self, index):
         """Write measurement data to file."""
         try:
-            with open(f"data/{self.filename}.txt", "a") as file:
-                if self.is_2d_sweep:
-                    file.write(
-                        f"{self.Y_volt * self.Y_volt_scale:>16.4f} "
-                        f"{self.X_volt_list[index]:>16.4f} "
-                        f"{self.current_list[index]:>16.8f}\n"
-                    )
-                else:
-                    file.write(
-                        f"{self.X_volt_list[index]:>16.4f} "
-                        f"{self.current_list[index]:>16.8f}\n"
-                    )
+            content = (
+                f"{self.Y_volt * self.Y_volt_scale:>16.4f} "
+                f"{self.X_volt_list[index]:>16.4f} "
+                f"{self.current_list[index]:>16.8f}\n"
+                if self.is_2d_sweep
+                else f"{self.X_volt_list[index]:>16.4f} "
+                f"{self.current_list[index]:>16.8f}\n"
+            )
+            self._write_to_file(f"data/{self.filename}.txt", content)
         except IOError as e:
             logger.error(f"Failed to write measurement data: {str(e)}")
             raise
@@ -707,16 +714,20 @@ class Sweeper:
                     tmp_init_state.append([Y_gate, self.Y_volt, "V"])
                 params["initial_state"] = tmp_init_state
 
-                if i % 2 == 0:  # Use modulo instead of floor division for clarity
-                    params["start_voltage"] = X_start_voltage
-                    params["end_voltage"] = X_end_voltage
-                else:
-                    params["start_voltage"] = X_end_voltage
-                    params["end_voltage"] = X_start_voltage
+                # if i % 2 == 0:  # Use modulo instead of floor division for clarity
+                # params["start_voltage"] = X_start_voltage
+                # params["end_voltage"] = X_end_voltage
+                # else:
+                # params["start_voltage"] = X_end_voltage
+                # params["end_voltage"] = X_start_voltage
+
+                params["start_voltage"] = X_start_voltage
+                params["end_voltage"] = X_end_voltage
 
                 # Perform 1D sweep
                 _, Z_values = self.sweep1D(**params)
-                self.data[i] = Z_values[::-1] if i % 2 == 1 else Z_values
+                # self.data[i] = Z_values[::-1] if i % 2 == 1 else Z_values
+                self.data[i] = Z_values
 
                 # Update plot
                 self._update_2d_plot()
@@ -741,13 +752,13 @@ class Sweeper:
     def _write_2d_data_header(self):
         """Write header for 2D sweep data file."""
         try:
-            with open(f"data/{self.filename}.txt", "a") as file:
-                header = (
-                    f"{self.y_label} [{self.Y_volt_unit}]".rjust(16)
-                    + f"{self.x_label} [{self.X_volt_unit}]".rjust(16)
-                    + f"{self.z_label} [{self.current_unit}]".rjust(16)
-                )
-                file.write(header + "\n")
+            content = (
+                f"{self.y_label} [{self.Y_volt_unit}]".rjust(16)
+                + f"{self.x_label} [{self.X_volt_unit}]".rjust(16)
+                + f"{self.z_label} [{self.current_unit}]".rjust(16)
+                + "\n"
+            )
+            self._write_to_file(f"data/{self.filename}.txt", content)
         except IOError as e:
             logger.error(f"Failed to write data header: {str(e)}")
             raise
@@ -852,6 +863,8 @@ class Sweeper:
         initial_state: list,
         current_unit: str = "uA",
         comments: str = None,
+        oversampling: int = 1,
+        is_plot: bool = True,
         is_show: bool = True,
     ) -> None:
         """
@@ -864,7 +877,6 @@ class Sweeper:
             initial_state (list): List of tuples (gate, init_voltage) for initial state.
             current_unit (str): Unit for current measurements.
             comments (str): Additional comments for logging.
-            is_show (bool): Whether to show the plot after completion.
 
         Raises:
             ValueError: If input parameters are invalid.
@@ -886,6 +898,8 @@ class Sweeper:
             self.comments = comments
             self.total_time = total_time
             self.time_step = time_step
+            self.is_plot = is_plot
+            self.is_show = is_show
 
             self._set_units()
             self._set_filename("time")
@@ -900,7 +914,9 @@ class Sweeper:
             self._set_initial_state(initial_state)
 
             # Set up plotting
-            self._setup_1d_plot()
+            if is_plot:
+                self._setup_plot_style()
+                self._setup_1d_plot()
 
             # Write header and start logging
             self._write_time_sweep_header()
@@ -910,8 +926,12 @@ class Sweeper:
             logger.info(
                 f"Starting time sweep for {total_time:.1f}s with {time_step:.3f}s steps"
             )
-            initial_time = time.time()
 
+            for gate in measured_inputs.gates:
+                gate.nanonisInstance.Util_RTOversamplSet(oversampling)  # oversampling
+                gate.nanonisInstance.Util_AcqPeriodSet(time_step)  # acquisition period
+
+            initial_time = time.time()
             for i in tqdm(range(total_steps), desc="Recording measurements", ncols=80):
                 # Record time and current
                 current_time = time.time() - initial_time
@@ -921,15 +941,11 @@ class Sweeper:
                 )
 
                 # Update plot
-                self._update_time_sweep_plot(time_points, currents, i)
+                if is_plot:
+                    self._update_time_sweep_plot(time_points, currents, i)
 
                 # Write data
                 self._write_time_sweep_data(current_time, currents[i])
-
-                # Wait for next measurement
-                next_measurement_time = initial_time + (i + 1) * time_step
-                while time.time() < next_measurement_time:
-                    time.sleep(time_step / 100)
 
             self._log_params_end()
 
@@ -944,11 +960,12 @@ class Sweeper:
     def _write_time_sweep_header(self):
         """Write header for time sweep data file."""
         try:
-            with open(f"data/{self.filename}.txt", "a") as file:
-                header = f"{self.x_label} [s]".rjust(
-                    16
-                ) + f"{self.z_label} [{self.current_unit}]".rjust(16)
-                file.write(header + "\n")
+            content = (
+                f"{self.x_label} [s]".rjust(16)
+                + f"{self.z_label} [{self.current_unit}]".rjust(16)
+                + "\n"
+            )
+            self._write_to_file(f"data/{self.filename}.txt", content)
         except IOError as e:
             logger.error(f"Failed to write time sweep header: {str(e)}")
             raise
@@ -978,8 +995,8 @@ class Sweeper:
     def _write_time_sweep_data(self, current_time, current):
         """Write measurement data during time sweep."""
         try:
-            with open(f"data/{self.filename}.txt", "a") as file:
-                file.write(f"{current_time:>16.2f} {current:>16.8f}\n")
+            content = f"{current_time:>16.4f} {current:>16.8f}\n"
+            self._write_to_file(f"data/{self.filename}.txt", content)
         except IOError as e:
             logger.error(f"Failed to write time sweep data: {str(e)}")
             raise

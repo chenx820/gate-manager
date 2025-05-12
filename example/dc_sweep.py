@@ -12,14 +12,6 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
-# Define the folder names to check
-folders = ['figures', 'data']
-
-# Check if each folder exists and create it if it doesn't
-for folder in folders:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
 # Create a socket connection to Nanonis
 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connection.connect(("192.168.236.1", 6501))
@@ -31,7 +23,6 @@ nanonisInstance = Nanonis(connection)
 nanonis_o = NanonisSourceConnection(nanonisInstance).outputs
 nanonis_i = NanonisSourceConnection(nanonisInstance).inputs
 lines = SemiqonLinesConnection().lines
-
 
 # %% Define gates
 
@@ -49,7 +40,6 @@ res_S_D = Gate(source=nanonis_o[8], lines=[lines[12], lines[24]])  # resS,resD: 
 outputs = GatesGroup([t_P1, t_bar_S1, t_bar_12, t_global, t_b_s, res_S_D])
 fingers = GatesGroup([t_P1, t_bar_S1, t_bar_12, t_global])
 
-
 # %% Define input gates for reading currents measurements
 
 t_D = Gate(source=nanonis_i[1], lines=[lines[1]], amplification=-1e8)
@@ -61,7 +51,7 @@ SD6 = Gate(source=nanonis_i[6])
 SD7 = Gate(source=nanonis_i[7])
 SD8 = Gate(source=nanonis_i[8])
 
-# this should be automatic for the input gates grouping. maybe call it 'inputs' only?
+# this should be automatic for the input gates grouping. 
 inputs = GatesGroup([t_D, b_D, SD4, SD5, SD6, SD7, SD8])
 
 
@@ -78,7 +68,7 @@ sweeper = Sweeper(outputs, inputs, **params)
 
 # %% 1D sweep
 
-param = {
+params_1d = {
     'swept_outputs': GatesGroup([t_P1]),
     'measured_inputs': GatesGroup([t_D]),
     'start_voltage': [-0.6, 'V'],
@@ -96,12 +86,12 @@ param = {
     'is_show': True
     }
     
-sweeper.sweep1D(**param)
+sweeper.sweep1D(**params_1d)
 
 
 # %% 2D sweep
 
-param = {
+params_2d = {
         'X_swept_outputs': GatesGroup([t_P1]),
         'X_start_voltage': [-0.3, 'V'],
         'X_end_voltage': [0.3, 'V'],
@@ -121,9 +111,8 @@ param = {
         'comments': 'diamond',
         'is_show': True
         }
-sweeper.sweep2D(**params)
+sweeper.sweep2D(**params_2d)
 
 
 # %% Turn off
-fingers.turn_off()
-GatesGroup([t_b_s, res_S_D]).turn_off()
+sweeper.cleanup()
