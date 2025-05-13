@@ -84,7 +84,7 @@ class Sweeper:
 
         logger.info("Sweeper initialized successfully")
 
-    def _initialize_attributes(self) -> None:
+    def _initialize_attributes(self):
         """Initialize class attributes with default values."""
         # Labels and file metadata
         self.x_label = None
@@ -179,7 +179,7 @@ class Sweeper:
         base_units = {"V", "A"}
 
         # Split prefix and base unit
-        if len(unit) > 1 and unit[0] in ["m", "μ", "u", "n", "p", "k", "M", "G", "T"]:
+        if len(unit) > 1 and unit[0] in ["m", "μ", "n", "p", "k", "M", "G", "T"]:
             prefix = unit[0]
             base_unit = unit[1:]
             if base_unit not in base_units:
@@ -463,10 +463,11 @@ class Sweeper:
         # Set initial states
         converted_init_state = []
         for gate, init_volt, init_unit in initial_state:
-            gate.set_slew_rate(0.1)  # Set slew rate to 100 mV/s
-            converted_init_volt = self._convert_units([init_volt, init_unit])
-            converted_init_state.append([gate, converted_init_volt])
-            gate.voltage(converted_init_volt, is_wait=False)
+            if gate not in swept_outputs.gates:
+                gate.set_slew_rate(0.1)  # Set slew rate to 100 mV/s
+                converted_init_volt = self._convert_units([init_volt, init_unit])
+                converted_init_state.append([gate, converted_init_volt])
+                gate.voltage(converted_init_volt, is_wait=False)
 
         # Set swept outputs
         if swept_outputs is not None:
@@ -478,10 +479,10 @@ class Sweeper:
         while not all(
             [
                 gate.is_at_target_voltage(voltage)
-                for gate, voltage in converted_init_state
+                for gate, voltage in converted_init_state if gate not in swept_outputs.gates
             ]
         ):
-            time.sleep(0.001)
+            time.sleep(0.1)
 
         if swept_outputs is not None:
             while not all(
@@ -490,7 +491,7 @@ class Sweeper:
                     for gate in swept_outputs.gates
                 ]
             ):
-                time.sleep(0.001)
+                time.sleep(0.1)
 
     def _setup_1d_plot(self):
         """Set up the initial 1D plot."""
@@ -671,7 +672,7 @@ class Sweeper:
 
             # Write header and start logging
             self._write_2d_data_header()
-            self._set_initial_state(initial_state)
+            self._set_initial_state(initial_state, X_swept_outputs)
             self._log_params_start(sweep_type="voltage")
 
             # Set up plotting
