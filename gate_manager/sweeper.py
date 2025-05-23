@@ -393,11 +393,11 @@ class Sweeper:
             self.X_slew_rate = slew_rate
 
             # Pre-allocate data arrays for better performance
-            total_steps = round(
+            total_points = round(
                 abs(self.X_end_volt - self.X_start_volt) / self.X_step + 1
             )
-            self.X_volt_list = np.zeros(total_steps)
-            self.current_list = np.zeros(total_steps)
+            self.X_volt_list = np.zeros(total_points)
+            self.current_list = np.zeros(total_points)
 
             # Initialize plotting
             if not is_2d_sweep:
@@ -422,7 +422,7 @@ class Sweeper:
             for gate in swept_outputs.gates:
                 gate.set_slew_rate(self.X_slew_rate)  # Set slew rate to 1 V/s
             for i in tqdm(
-                range(total_steps), desc="Sweeping", ncols=80, disable=is_2d_sweep
+                range(total_points), desc="Sweeping", ncols=80, disable=is_2d_sweep
             ):
                 self.X_volt = (
                     self.X_start_volt + i * self.X_step
@@ -462,29 +462,27 @@ class Sweeper:
             logger.info("Setting up initial state")
         # Set initial states
         converted_init_state = []
-        for gate, init_volt, init_unit in initial_state:
-            if gate not in swept_outputs.gates:
-                gate.set_slew_rate(0.1)  # Set slew rate to 100 mV/s
-                converted_init_volt = self._convert_units([init_volt, init_unit])
-                converted_init_state.append([gate, converted_init_volt])
-                gate.voltage(converted_init_volt, is_wait=False)
-
-        # Set swept outputs
         if swept_outputs is not None:
             for gate in swept_outputs.gates:
                 gate.set_slew_rate(0.1)  # Set slew rate to 100 mV/s
                 gate.voltage(self.X_start_volt, is_wait=False)
-
-        # Wait for stabilization
-        while not all(
-            [
-                gate.is_at_target_voltage(voltage)
-                for gate, voltage in converted_init_state if gate not in swept_outputs.gates
-            ]
-        ):
-            time.sleep(0.1)
-
-        if swept_outputs is not None:
+                
+            for gate, init_volt, init_unit in initial_state:
+                if gate not in swept_outputs.gates:
+                    gate.set_slew_rate(0.1)  # Set slew rate to 100 mV/s
+                    converted_init_volt = self._convert_units([init_volt, init_unit])
+                    converted_init_state.append([gate, converted_init_volt])
+                    gate.voltage(converted_init_volt, is_wait=False)
+                
+            # Wait for stabilization
+            while not all(
+                [
+                    gate.is_at_target_voltage(voltage)
+                    for gate, voltage in converted_init_state if gate not in swept_outputs.gates
+                ]
+            ):
+                time.sleep(0.1)
+                
             while not all(
                 [
                     gate.is_at_target_voltage(self.X_start_volt)
@@ -492,6 +490,23 @@ class Sweeper:
                 ]
             ):
                 time.sleep(0.1)
+                    
+                    
+        else:
+            for gate, init_volt, init_unit in initial_state:
+                gate.set_slew_rate(0.1)  # Set slew rate to 100 mV/s
+                converted_init_volt = self._convert_units([init_volt, init_unit])
+                converted_init_state.append([gate, converted_init_volt])
+                gate.voltage(converted_init_volt, is_wait=False)
+                
+            while not all(
+                [
+                    gate.is_at_target_voltage(voltage)
+                    for gate, voltage in converted_init_state
+                ]
+            ):
+                time.sleep(0.1)
+                
 
     def _setup_1d_plot(self):
         """Set up the initial 1D plot."""
@@ -906,18 +921,12 @@ class Sweeper:
             self._set_filename("time")
 
             # Pre-allocate arrays
-            total_steps = int(total_time // time_step) + 1
-            time_points = np.zeros(total_steps)
-            currents = np.zeros(total_steps)
+            total_points = int(total_time / time_step)
+            currents = []
 
             # Set up initial state
             logger.info("Setting up initial state")
             self._set_initial_state(initial_state)
-
-            # Set up plotting
-            if is_plot:
-                self._setup_plot_style()
-                self._setup_1d_plot()
 
             # Write header and start logging
             self._write_time_sweep_header()
@@ -931,27 +940,17 @@ class Sweeper:
             for gate in measured_inputs.gates:
                 gate.nanonisInstance.Util_RTOversamplSet(oversampling)  # oversampling
                 gate.nanonisInstance.Util_AcqPeriodSet(time_step)  # acquisition period
-
-            initial_time = time.time()
-            for i in tqdm(range(total_steps), desc="Recording measurements", ncols=80):
-                # Record time and current
-                current_time = time.time() - initial_time
-                time_points[i] = current_time
-                currents[i] = (
-                    measured_inputs.gates[0].read_current() * self.current_scale
-                )
-
-                # Update plot
-                if is_plot:
-                    self._update_time_sweep_plot(time_points, currents, i)
-
-                # Write data
-                self._write_time_sweep_data(current_time, currents[i])
-
+            
+            start_time = time.perf_counter()
+            for i in range(total_points):
+                current = measured_inputs.gates[0].read_current() * self.current_scale
+                self._write_time_sweep_data(time.perf_counter() - start_time, current)
+            
             self._log_params_end()
+            
+            #plt.plot(currents)
+            #plt.show()
 
-            # Save and show plot
-            self._save_and_show_plot()
             logger.info("Time sweep completed successfully")
 
         except Exception as e:
