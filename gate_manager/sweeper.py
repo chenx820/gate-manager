@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-
+from nanonis_tramea import Nanonis
 from .gate import GatesGroup, Gate
 
 # Configure logging
@@ -46,6 +46,7 @@ class Sweeper:
         self,
         outputs: GatesGroup = None,
         inputs: GatesGroup = None,
+        nanonisInstance: Nanonis = None,
         temperature: str = None,
         device: str = None,
     ) -> None:
@@ -67,6 +68,7 @@ class Sweeper:
 
         self.outputs = outputs
         self.inputs = inputs
+        self.nanonisInstance = nanonisInstance
         self.temperature = temperature
         self.device = device
 
@@ -179,7 +181,7 @@ class Sweeper:
         base_units = {"V", "A"}
 
         # Split prefix and base unit
-        if len(unit) > 1 and unit[0] in ["m", "μ", "n", "p", "k", "M", "G", "T"]:
+        if len(unit) > 1 and unit[0] in ["m", "μ", "u", "n", "p", "k", "M", "G", "T"]:
             prefix = unit[0]
             base_unit = unit[1:]
             if base_unit not in base_units:
@@ -202,7 +204,7 @@ class Sweeper:
             "": 1,
             "m": 1e-3,
             "μ": 1e-6,
-            "u": 1e-6,
+            "u": 1e-6,  # Handle both μ and u for micro-
             "n": 1e-9,
             "p": 1e-12,
             "f": 1e-15,
@@ -917,19 +919,16 @@ class Sweeper:
             self.is_plot = is_plot
             self.is_show = is_show
 
+            self.nanonisInstance.ThreeDSwp_AcqChsSet([gate.source.read_index for gate in measured_inputs.gates])
+
             self._set_units()
             self._set_filename("time")
-
-            # Pre-allocate arrays
-            total_points = int(total_time / time_step)
-            currents = []
 
             # Set up initial state
             logger.info("Setting up initial state")
             self._set_initial_state(initial_state)
 
             # Write header and start logging
-            self._write_time_sweep_header()
             self._log_params_start(sweep_type="time")
 
             # Perform time sweep
@@ -937,21 +936,33 @@ class Sweeper:
                 f"Starting time sweep for {total_time:.1f}s with {time_step:.3f}s steps"
             )
 
-            for gate in measured_inputs.gates:
-                gate.nanonisInstance.Util_RTOversamplSet(oversampling)  # oversampling
-                gate.nanonisInstance.Util_AcqPeriodSet(time_step)  # acquisition period
+            self.nanonisInstance.Util_RTOversamplSet(oversampling)  # oversampling
             
-            start_time = time.perf_counter()
-            for i in range(total_points):
-                current = measured_inputs.gates[0].read_current() * self.current_scale
-                self._write_time_sweep_data(time.perf_counter() - start_time, current)
+            self.nanonisInstance.ThreeDSwp_SaveOptionsSet(
+                Series_Name=self.filename,
+                Create_Date_Time_Folder=2,
+                Comment=self.comments,
+                Modules_Names=""
+                )
             
+            self.nanonisInstance.ThreeDSwp_SwpChPropsSet(int(self.total_time // self.time_step)+1, 1, 0, 0, 0.0, 0)
+
+            self.nanonisInstance.ThreeDSwp_SwpChTimingSet(
+                InitSettlingTime=1e-3, 
+                SettlingTime=1e-3, 
+                IntegrationTime=time_step, 
+                EndSettlingTime=1e-3, 
+                MaxSlewRate=0
+                )
+
+            self.nanonisInstance.ThreeDSwp_Start(1)
+
             self._log_params_end()
             
             #plt.plot(currents)
             #plt.show()
 
-            logger.info("Time sweep completed successfully")
+            #logger.info("Time sweep completed successfully")
 
         except Exception as e:
             logger.error(f"Error during time sweep: {str(e)}")

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gate-manager"
-version = "2.8.0"
+version = "2.8.1"
 description = "A package for controlling and managing gate voltages in quantum devices."
 readme = "README.md"
 authors = [
@@ -18,7 +18,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "nanonis_spm",
+    "nanonis_tramea>=1.0.6",
     "matplotlib",
     "numpy",
     "tqdm",
