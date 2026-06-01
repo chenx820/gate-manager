@@ -2,6 +2,8 @@
 
 A Python package for controlling and managing gate voltages in quantum devices.
 
+Project initiated and supervised by (John Michniewicz)[https://github.com/johnmichniewicz]; primary implementation and development by (Chen Huang)[https://github.com/chenx820].
+
 ## Features
 
 - **Easy Voltage Control**
